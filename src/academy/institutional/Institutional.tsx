@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Btn } from '../../ui'
+import { LessonNav } from '../components/LessonNav'
 import {
   complexityForReveal,
   INST_LESSONS,
@@ -44,24 +45,13 @@ export default function Institutional({
   }
 
   return (
-    <div className="grid lg:grid-cols-[16rem_1fr] gap-6">
-      <aside className="space-y-2 relative z-20">
-        <TrackToggle track={track} onChange={setTrack} />
-        {INST_LESSONS.map((title, i) => (
-          <button
-            key={title}
-            type="button"
-            onClick={() => setLesson(i)}
-            className={
-              'w-full text-left rounded-lg px-3 py-2 text-sm transition ' +
-              (i === lesson ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900')
-            }
-          >
-            <span className="text-xs opacity-70">Lesson {i + 1}</span>
-            <div>{title}</div>
-          </button>
-        ))}
-        <label className="mt-4 flex items-center gap-2 px-2 text-xs text-slate-400 cursor-pointer">
+    <div className="academy-shell min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] gap-3 lg:gap-4">
+      <aside className="relative z-[var(--z-sticky-sidebar)] min-w-0 flex flex-col gap-1 lg:sticky lg:top-16 lg:self-start">
+        <div className="pb-1">
+          <TrackToggle track={track} onChange={setTrack} />
+        </div>
+        <LessonNav lessons={INST_LESSONS} lesson={lesson} onSelect={setLesson} />
+        <label className="mt-2 flex items-center gap-2 px-2 text-[11px] text-slate-400 cursor-pointer">
           <input
             type="checkbox"
             checked={reduceMotion}
@@ -72,10 +62,12 @@ export default function Institutional({
         </label>
       </aside>
 
-      <div className={'space-y-5 min-w-0' + (reduceMotion ? ' motion-safe-off' : '')}>
-        <div>
-          <p className="text-xs uppercase tracking-wide text-indigo-300">Institutional lending</p>
-          <h1 className="text-2xl font-bold mt-1">
+      <div className={'space-y-4 min-w-0' + (reduceMotion ? ' motion-safe-off' : '')}>
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
+            Institutional lending
+          </p>
+          <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
             Lesson {lesson + 1}: {INST_LESSONS[lesson]}
           </h1>
         </div>

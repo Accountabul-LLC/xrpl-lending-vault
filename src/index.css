@@ -2,15 +2,33 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --z-base: 0;
+  --z-sticky-header: 20;
+  --z-sticky-sidebar: 10;
+  --z-dropdown: 30;
+  --z-popover: 40;
+  --z-banner: 15;
+}
+
 html,
 body,
 #root {
   min-height: 100%;
 }
 
+html {
+  overflow-x: clip;
+}
+
 body {
   background: #0b1220;
   color: #e2e8f0;
+  overflow-x: clip;
+}
+
+#root {
+  min-width: 0;
 }
 
 /* Academy desktop workstation: prefer one page scroll, no nested sidebar scroll */

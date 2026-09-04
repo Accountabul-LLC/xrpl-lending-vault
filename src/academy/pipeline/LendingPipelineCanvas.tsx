@@ -1,6 +1,5 @@
-import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { takeAnimationCallback, useSimulation } from '../simulation/SimulationContext'
-import type { EntityId } from '../simulation/types'
 import { FallbackPipeline } from './FallbackPipeline'
 import { PipelineErrorBoundary } from './PipelineErrorBoundary'
 
@@ -19,6 +18,31 @@ function usePrefersReducedMotion() {
   return reduced
 }
 
+function HudChip({
+  tone,
+  title,
+  detail
+}: {
+  tone: 'protocol' | 'depositor' | 'borrower'
+  title: string
+  detail?: string
+}) {
+  const toneCls =
+    tone === 'protocol'
+      ? 'border-indigo-500/40 text-indigo-100'
+      : tone === 'depositor'
+        ? 'border-emerald-500/40 text-emerald-100'
+        : 'border-amber-500/40 text-amber-100'
+  return (
+    <div
+      className={`min-w-0 max-w-[min(12rem,calc(50%-4px))] rounded-md border bg-slate-950/85 px-2 py-1 text-[11px] font-medium backdrop-blur-sm ${toneCls}`}
+    >
+      <div className="truncate">{title}</div>
+      {detail ? <div className="truncate text-[10px] font-mono opacity-80">{detail}</div> : null}
+    </div>
+  )
+}
+
 export function LendingPipelineCanvas({
   lesson,
   reduceMotionOverride
@@ -29,27 +53,21 @@ export function LendingPipelineCanvas({
   const sim = useSimulation()
   const prefers = usePrefersReducedMotion()
   const reducedMotion = reduceMotionOverride || prefers
-  const [positions, setPositions] = useState<Partial<Record<EntityId, { x: number; y: number }>>>({})
   const [webglOk, setWebglOk] = useState(true)
-  const projectRef = useRef<((id: EntityId) => { x: number; y: number } | null) | null>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const [frameSize, setFrameSize] = useState({ w: 0, h: 0 })
 
   useEffect(() => {
-    let raf = 0
-    const tick = () => {
-      raf = requestAnimationFrame(tick)
-      if (!projectRef.current || !webglOk) return
-      const next: Partial<Record<EntityId, { x: number; y: number }>> = {}
-      ;(['protocol', 'vault', 'depositor', 'borrower'] as EntityId[]).forEach((id) => {
-        const p = projectRef.current?.(id)
-        if (p) next[id] = p
-      })
-      setPositions(next)
-    }
-    raf = requestAnimationFrame(tick)
-    return () => cancelAnimationFrame(raf)
-  }, [webglOk])
+    const el = frameRef.current
+    if (!el) return
+    const update = () => setFrameSize({ w: el.clientWidth, h: el.clientHeight })
+    update()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
-  // When 3D is unavailable, apply queued animation completions immediately so UI still works.
   useEffect(() => {
     if (webglOk) return
     for (const anim of sim.state.pendingAnimations) {
@@ -63,9 +81,15 @@ export function LendingPipelineCanvas({
 
   const { vault } = sim.state
   const showFallback = !webglOk
+  const { h: fh } = frameSize
+  const showProtocolChip = fh === 0 || fh >= 280
 
   return (
-    <div className="relative w-full h-[min(58vh,640px)] min-h-[360px] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden">
+    <div
+      ref={frameRef}
+      data-viz-frame
+      className="relative w-full min-h-[220px] h-[min(48vh,420px)] sm:h-[min(52vh,480px)] lg:min-h-[360px] lg:h-[min(58vh,640px)] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
+    >
       {showFallback ? (
         <FallbackPipeline lesson={lesson} />
       ) : (
@@ -86,66 +110,58 @@ export function LendingPipelineCanvas({
               onEntityClick={(id) => sim.selectEntity(id)}
               onAnimationComplete={(id) => sim.clearAnimation(id)}
               onAnimationStart={(id) => sim.startAnimation(id)}
-              registerProject={(fn) => {
-                projectRef.current = fn
-              }}
+              registerProject={() => {}}
               onWebglFailure={() => setWebglOk(false)}
             />
           </Suspense>
         </PipelineErrorBoundary>
       )}
 
-      {!showFallback && positions.protocol && (
-        <Label x={positions.protocol.x} y={positions.protocol.y - 48} tone="protocol">
-          Protocol / Facilitator
-        </Label>
-      )}
-      {!showFallback && positions.depositor && (
-        <Label x={positions.depositor.x} y={positions.depositor.y + 36} tone="depositor">
-          Depositor
-          <span className="block text-[10px] font-mono text-emerald-200/80">
-            ${sim.primaryDepositor.deposited.toLocaleString()} in vault
-          </span>
-        </Label>
-      )}
-      {!showFallback && positions.borrower && (
-        <Label x={positions.borrower.x} y={positions.borrower.y + 36} tone="borrower">
-          Borrower
-          <span className="block text-[10px] font-mono text-amber-200/80">
-            ${sim.primaryBorrower.remainingBalance.toLocaleString()} outstanding
-          </span>
-        </Label>
-      )}
-      {!showFallback && positions.vault && (
+      {!showFallback && (
         <div
-          className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 text-center"
-          style={{ left: positions.vault.x, top: positions.vault.y - 70 }}
+          data-viz-hud
+          className="absolute inset-0 z-[var(--z-banner)] pointer-events-none flex flex-col min-w-0 p-2 sm:p-3"
         >
-          <div className="rounded-lg border border-sky-500/40 bg-slate-950/85 px-3 py-2 backdrop-blur-sm shadow-lg">
-            <div className="text-xs font-semibold text-sky-200">JRPU Lending Vault</div>
-            <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono text-slate-300">
-              <span>Total</span>
-              <span className="text-right">${Math.round(vault.totalCapital).toLocaleString()}</span>
-              <span>Available</span>
-              <span className="text-right text-emerald-300">
-                ${Math.round(vault.availableLiquidity).toLocaleString()}
-              </span>
-              <span>Lent</span>
-              <span className="text-right text-amber-300">
-                ${Math.round(vault.outstandingLoans).toLocaleString()}
-              </span>
-              <span>Interest</span>
-              <span className="text-right text-indigo-300">
-                ${Math.round(vault.interestEarned).toLocaleString()}
-              </span>
+          <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
+            {sim.state.statusBanner ? (
+              <div className="max-w-full truncate rounded-full border border-indigo-400/40 bg-indigo-950/80 px-3 py-1 text-xs font-semibold tracking-wide text-indigo-100">
+                {sim.state.statusBanner}
+              </div>
+            ) : null}
+            {showProtocolChip ? <HudChip tone="protocol" title="Protocol / Facilitator" /> : null}
+            <div className="w-full max-w-[min(16rem,100%)] rounded-lg border border-sky-500/40 bg-slate-950/85 px-3 py-2 text-center backdrop-blur-sm shadow-lg">
+              <div className="text-xs font-semibold text-sky-200">JRPU Lending Vault</div>
+              <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono text-slate-300">
+                <span className="text-left">Total</span>
+                <span className="text-right">${Math.round(vault.totalCapital).toLocaleString()}</span>
+                <span className="text-left">Available</span>
+                <span className="text-right text-emerald-300">
+                  ${Math.round(vault.availableLiquidity).toLocaleString()}
+                </span>
+                <span className="text-left">Lent</span>
+                <span className="text-right text-amber-300">
+                  ${Math.round(vault.outstandingLoans).toLocaleString()}
+                </span>
+                <span className="text-left">Interest</span>
+                <span className="text-right text-indigo-300">
+                  ${Math.round(vault.interestEarned).toLocaleString()}
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      {sim.state.statusBanner && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 rounded-full border border-indigo-400/40 bg-indigo-950/80 px-4 py-1.5 text-xs font-semibold tracking-wide text-indigo-100">
-          {sim.state.statusBanner}
+          <div className="flex-1 min-h-2" />
+          <div className="flex items-end justify-between gap-2 min-w-0 w-full">
+            <HudChip
+              tone="depositor"
+              title="Depositor"
+              detail={`$${sim.primaryDepositor.deposited.toLocaleString()} in vault`}
+            />
+            <HudChip
+              tone="borrower"
+              title="Borrower"
+              detail={`$${sim.primaryBorrower.remainingBalance.toLocaleString()} outstanding`}
+            />
+          </div>
         </div>
       )}
     </div>
@@ -163,33 +179,6 @@ function FallbackOnError({
     onFallback()
   }, [onFallback])
   return <FallbackPipeline lesson={lesson} />
-}
-
-function Label({
-  x,
-  y,
-  tone,
-  children
-}: {
-  x: number
-  y: number
-  tone: 'protocol' | 'depositor' | 'borrower'
-  children: ReactNode
-}) {
-  const toneCls =
-    tone === 'protocol'
-      ? 'border-indigo-500/40 text-indigo-100'
-      : tone === 'depositor'
-        ? 'border-emerald-500/40 text-emerald-100'
-        : 'border-amber-500/40 text-amber-100'
-  return (
-    <div
-      className={`absolute pointer-events-none -translate-x-1/2 rounded-md border bg-slate-950/80 px-2 py-1 text-[11px] font-medium backdrop-blur-sm ${toneCls}`}
-      style={{ left: x, top: y }}
-    >
-      {children}
-    </div>
-  )
 }
 
 export default LendingPipelineCanvas

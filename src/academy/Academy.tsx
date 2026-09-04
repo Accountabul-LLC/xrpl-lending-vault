@@ -3,6 +3,7 @@ import { Btn, Card, Stat } from '../ui'
 import { EntityPanel } from './components/EntityPanel'
 import { LifecyclePlayer } from './components/LifecyclePlayer'
 import { LifecycleTracker } from './components/LifecycleTracker'
+import { LessonNav } from './components/LessonNav'
 import Institutional from './institutional/Institutional'
 import { INST_LESSONS } from './institutional/glossary'
 import { TrackToggle } from './institutional/shared'
@@ -55,19 +56,23 @@ function Term({
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <span className="relative inline-block">
+    <span className="inline-flex flex-col items-start max-w-full align-top">
       <button
         type="button"
+        aria-expanded={open}
         onClick={() => {
           setOpen((v) => !v)
           onSelect?.(name)
         }}
-        className="text-indigo-300 underline decoration-dotted underline-offset-2 hover:text-indigo-200"
+        className="text-indigo-300 underline decoration-dotted underline-offset-2 hover:text-indigo-200 text-left"
       >
         {name}
       </button>
       {open && (
-        <span className="absolute z-10 left-0 top-full mt-1 w-64 rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs text-slate-300 shadow-xl">
+        <span
+          role="note"
+          className="mt-1 w-full max-w-prose rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs text-slate-300 shadow-xl"
+        >
           {GLOSSARY[name]}
         </span>
       )}
@@ -211,7 +216,7 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
               <div>Term: 12 months</div>
             </div>
           </Card>
-          <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2 text-xs font-mono">
             {phases.map((p, i) => (
               <div key={p} className="flex items-center gap-2">
                 <span
@@ -224,7 +229,11 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
                 >
                   {p}
                 </span>
-                {i < phases.length - 1 && <span className="text-slate-600">↓</span>}
+                {i < phases.length - 1 && (
+                  <span className="text-slate-600" aria-hidden>
+                    →
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -275,13 +284,18 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
                 type="button"
                 onClick={() => sim.selectTerm(name)}
                 className={
-                  'rounded-lg border p-3 text-left transition ' +
+                  'rounded-lg border p-3 text-left transition min-w-0 ' +
                   (sim.state.selectedTerm === name
                     ? 'border-indigo-400 bg-indigo-950/40'
                     : 'border-slate-800 hover:border-slate-600')
                 }
               >
-                <Term name={name} onSelect={(n) => sim.selectTerm(n)} />
+                <span className="text-indigo-300 underline decoration-dotted underline-offset-2">
+                  {name}
+                </span>
+                {sim.state.selectedTerm === name && (
+                  <p className="mt-2 text-xs text-slate-400 leading-relaxed">{GLOSSARY[name]}</p>
+                )}
               </button>
             ))}
           </div>
@@ -401,20 +415,20 @@ function Sandbox({ reduceMotion }: { reduceMotion: boolean }) {
           Reset
         </Btn>
       </div>
-      <div className="grid md:grid-cols-2 gap-4 text-sm">
-        <div>
+      <div className="grid md:grid-cols-2 gap-4 text-sm min-w-0">
+        <div className="min-w-0">
           <div className="text-xs text-slate-500 mb-2">Depositors</div>
           {depositors.map((d) => (
-            <div key={d.id} className="flex justify-between text-slate-300">
-              <span>{d.name}</span>
-              <span className="font-mono">${d.deposited.toLocaleString()}</span>
+            <div key={d.id} className="flex justify-between gap-3 min-w-0 text-slate-300">
+              <span className="truncate">{d.name}</span>
+              <span className="font-mono shrink-0">${d.deposited.toLocaleString()}</span>
             </div>
           ))}
         </div>
-        <div>
+        <div className="min-w-0">
           <div className="text-xs text-slate-500 mb-2">Loans ({borrowers.length} borrowers)</div>
           {loans.map((l) => (
-            <div key={l.id} className="text-slate-300">
+            <div key={l.id} className="text-slate-300 break-words">
               {borrowers.find((b) => b.id === l.borrowerId)?.name} · ${l.remaining.toLocaleString()} ·{' '}
               {l.status}
               {l.guarantor ? ` · guarantor: ${l.guarantor}` : ''}
@@ -422,9 +436,11 @@ function Sandbox({ reduceMotion }: { reduceMotion: boolean }) {
           ))}
         </div>
       </div>
-      <div className="font-mono text-xs text-slate-400 space-y-1">
+      <div className="font-mono text-xs text-slate-400 space-y-1 max-h-48 overflow-y-auto">
         {log.map((l, i) => (
-          <div key={i}>{l}</div>
+          <div key={i} className="break-words">
+            {l}
+          </div>
         ))}
       </div>
     </div>
@@ -504,28 +520,13 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
   }
 
   return (
-    <div className="academy-shell h-[calc(100vh-3.25rem)] min-h-[640px] grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] gap-3 lg:gap-4">
-      {/* Compact lesson rail — no nested scrollbar on desktop */}
-      <aside className="relative z-20 flex flex-col gap-1 lg:overflow-visible">
+    <div className="academy-shell min-w-0 lg:h-[calc(100vh-3.25rem)] lg:min-h-[640px] grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] gap-3 lg:gap-4">
+      {/* Compact lesson rail — chips on phones/tablets, full titles on desktop, no nested scrollbar */}
+      <aside className="relative z-[var(--z-sticky-sidebar)] min-w-0 flex flex-col gap-1 lg:overflow-visible">
         <div className="pb-1">
           <TrackToggle track={track} onChange={changeTrack} />
         </div>
-        <nav className="flex flex-col gap-0.5" aria-label="Lessons">
-          {LESSONS.map((title, i) => (
-            <button
-              key={title}
-              type="button"
-              onClick={() => setLesson(i)}
-              className={
-                'w-full text-left rounded-md px-2.5 py-1.5 text-[13px] leading-snug transition ' +
-                (i === lesson ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900/80')
-              }
-            >
-              <span className="block text-[10px] opacity-70 leading-none mb-0.5">Lesson {i + 1}</span>
-              <span className="block">{title}</span>
-            </button>
-          ))}
-        </nav>
+        <LessonNav lessons={LESSONS} lesson={lesson} onSelect={setLesson} />
         <label className="mt-2 flex items-center gap-2 px-2 text-[11px] text-slate-400 cursor-pointer">
           <input
             type="checkbox"
@@ -539,11 +540,11 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
 
       {/* Full-width main workspace */}
       <div className="min-w-0 flex flex-col gap-2.5 lg:overflow-auto">
-        <header className="shrink-0">
+        <header className="shrink-0 min-w-0">
           <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
             How a loan works
           </p>
-          <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight">
+          <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
             Lesson {lesson + 1}: {LESSONS[lesson]}
           </h1>
           <p className="text-xs text-slate-400 mt-1 max-w-4xl">{lessonBlurb[lesson]}</p>
@@ -563,7 +564,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
           <div className="min-w-0">
             <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
           </div>
-          <div className="space-y-2 xl:sticky xl:top-0">
+          <div className="space-y-2 min-w-0 xl:sticky xl:top-0">
             <EntityPanel />
             {!sim.state.selectedEntity && (
               <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-[11px] text-slate-500">

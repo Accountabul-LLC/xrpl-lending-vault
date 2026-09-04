@@ -7,7 +7,7 @@ export function FallbackPipeline({ lesson }: { lesson: number }) {
   const danger = sim.state.defaultedConnection
 
   return (
-    <div className="absolute inset-0 p-4 md:p-6 flex flex-col justify-center gap-3">
+    <div className="absolute inset-0 p-3 sm:p-4 md:p-6 flex flex-col justify-center gap-2 sm:gap-3 overflow-y-auto">
       <div className="text-center">
         <div
           className="inline-block rounded-xl border border-indigo-500/50 bg-indigo-950/40 px-4 py-2 cursor-pointer"
@@ -48,7 +48,7 @@ export function FallbackPipeline({ lesson }: { lesson: number }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 max-w-lg mx-auto w-full">
+      <div className="grid grid-cols-2 gap-2 sm:gap-4 max-w-lg mx-auto w-full min-w-0">
         <button
           type="button"
           onClick={() => sim.selectEntity('depositor')}

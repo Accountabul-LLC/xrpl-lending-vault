@@ -66,5 +66,5 @@ export default function SceneMount({
     sceneRef.current?.syncState(state)
   }, [state])
 
-  return <div ref={rootRef} className="absolute inset-0" />
+  return <div ref={rootRef} className="absolute inset-0 min-w-0 overflow-hidden" />
 }
