@@ -144,10 +144,14 @@ export default function App() {
     })
   }
 
+  // XLS-66 requires LoanBrokerSet's Account to be the Vault's owning account
+  // (confirmed live on devnet: a distinct broker wallet gets tecNO_PERMISSION).
+  // So the vault owner is also the broker operator here — cover funding can
+  // still come from a separate "broker" wallet since that's just a payment.
   async function handleCreateLoanBroker() {
-    if (!wallets.broker || !vaultId) return
+    if (!wallets.owner || !vaultId) return
     await run('create-broker', async () => {
-      const { loanBrokerId: id } = await createLoanBroker(wallets.broker!, vaultId, {
+      const { loanBrokerId: id } = await createLoanBroker(wallets.owner!, vaultId, {
         managementFeeRateBps: 200
       })
       setLoanBrokerId(id)
@@ -157,20 +161,20 @@ export default function App() {
   }
 
   async function handleDepositCover() {
-    if (!wallets.broker || !loanBrokerId) return
+    if (!wallets.owner || !loanBrokerId) return
     await run('deposit-cover', async () => {
-      await depositCover(wallets.broker!, loanBrokerId, coverAmount)
+      await depositCover(wallets.owner!, loanBrokerId, coverAmount)
       pushLog(`LoanBrokerCoverDeposit ${coverAmount} XRP`)
       setLoanBroker(await fetchLoanBroker(loanBrokerId))
     })
   }
 
   async function handleCreateLoan() {
-    if (!wallets.broker || !wallets.borrower || !loanBrokerId) return
+    if (!wallets.owner || !wallets.borrower || !loanBrokerId) return
     await run('create-loan', async () => {
       // APY -> 1/10th bps field per XLS-66 (InterestRate is annualized, 1/10th bps units)
       const bps10 = Math.round(parseFloat(aprPercent) * 1000)
-      const { loanId: id } = await createLoan(wallets.broker!, wallets.borrower!, loanBrokerId, {
+      const { loanId: id } = await createLoan(wallets.owner!, wallets.borrower!, loanBrokerId, {
         principalXrp: principal,
         interestRateBps: bps10,
         paymentTotal: parseInt(paymentTotal, 10),
@@ -288,11 +292,15 @@ export default function App() {
         </Card>
 
         <Card title="3. Loan Broker & Cover (XLS-66)">
+          <p className="text-xs text-slate-500">
+            XLS-66 requires the broker to be the vault's owning account (confirmed live on
+            devnet) — operated here by the <span className="text-slate-300">owner</span> wallet.
+          </p>
           <Btn
-            disabled={!wallets.broker || !vaultId || busy === 'create-broker'}
+            disabled={!wallets.owner || !vaultId || busy === 'create-broker'}
             onClick={handleCreateLoanBroker}
           >
-            Create Loan Broker (broker)
+            Create Loan Broker (owner)
           </Btn>
 
           {loanBrokerId && (
@@ -312,7 +320,7 @@ export default function App() {
                   value={coverAmount}
                   onChange={(e) => setCoverAmount(e.target.value)}
                 />
-                <Btn disabled={!wallets.broker || busy === 'deposit-cover'} onClick={handleDepositCover}>
+                <Btn disabled={!wallets.owner || busy === 'deposit-cover'} onClick={handleDepositCover}>
                   Deposit first-loss cover
                 </Btn>
               </div>
@@ -348,7 +356,7 @@ export default function App() {
             </div>
           </div>
           <Btn
-            disabled={!wallets.broker || !wallets.borrower || !loanBrokerId || busy === 'create-loan'}
+            disabled={!wallets.owner || !wallets.borrower || !loanBrokerId || busy === 'create-loan'}
             onClick={handleCreateLoan}
           >
             Create Loan
