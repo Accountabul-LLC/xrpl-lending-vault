@@ -5,7 +5,30 @@ export function LifecycleTracker({ stage }: { stage: LifecycleStage }) {
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-3 min-w-0">
       <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-2">Capital lifecycle</div>
-      <div className="flex items-start w-full min-w-0">
+
+      <div className="flex flex-wrap gap-1.5 sm:hidden">
+        {LIFECYCLE_STAGES.map((s, i) => {
+          const active = i === idx
+          const done = i < idx
+          return (
+            <span
+              key={s}
+              className={
+                'rounded-full px-2 py-0.5 text-[10px] leading-tight ' +
+                (active
+                  ? 'bg-indigo-600 text-white'
+                  : done
+                    ? 'bg-emerald-950 text-emerald-200 border border-emerald-700/50'
+                    : 'bg-slate-900 text-slate-500 border border-slate-800')
+              }
+            >
+              {LIFECYCLE_LABELS[s]}
+            </span>
+          )
+        })}
+      </div>
+
+      <div className="hidden sm:flex items-start w-full min-w-0">
         {LIFECYCLE_STAGES.map((s, i) => {
           const active = i === idx
           const done = i < idx

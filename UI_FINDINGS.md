@@ -15,7 +15,7 @@ All IDs are stable. Status reflects the layout-engineer pass of 2026-09-04.
 **Observed behavior:** Below the `lg` breakpoint the full lesson list rendered as a vertical stack (~400px) before the title, canvas, and copy. On a phone the visualization and Next lesson control sat far below the fold.  
 **Expected behavior:** All eight lessons remain reachable without consuming the primary viewport.  
 **Root cause:** One layout (`w-full` lesson buttons) was used at every width. The grid only became two columns at `lg` (`1024px`).  
-**Fix:** Compact numbered lesson chips that wrap on small screens; keep the full titled list in a sticky sidebar at `lg+` using `minmax(13rem,15rem)` + `minmax(0,1fr)`.  
+**Fix:** Compact numbered lesson chips that wrap on small screens (`h-8 w-8` so all eight fit a 320px row); keep the full titled list in a sticky sidebar at `lg+` using `minmax(13rem,15rem)` + `minmax(0,1fr)`.  
 **Regression tests:** 320, 375, 430, 768, 1024, 1366. Confirm chips wrap, desktop list is complete, no independent sidebar scrollbar.  
 **Status:** Resolved
 
@@ -100,7 +100,7 @@ All IDs are stable. Status reflects the layout-engineer pass of 2026-09-04.
 **Observed behavior:** Protocol / vault / party labels were placed from projected 3D coordinates. The frame used `overflow-hidden` (needed for rounded corners), so labels were cut off.  
 **Expected behavior:** Labels stay inside the visualization region.  
 **Root cause:** Absolute positioning with no clamp; overflow hidden used as a visual mask rather than a layout bound.  
-**Fix:** Clamp overlay points to the frame size; cap label `max-width`. Do not rely on overflow-hidden as the only defense.  
+**Fix:** Clamp overlay points to the frame size; cap label `max-width`. On short/narrow frames omit the Protocol HTML label so it cannot sit on the vault card; below 360px width omit party labels and keep the vault HUD. Do not rely on overflow-hidden as the only defense.  
 **Regression tests:** Lessons 0–7; 320, 768, 1280.  
 **Status:** Resolved
 
@@ -117,7 +117,7 @@ All IDs are stable. Status reflects the layout-engineer pass of 2026-09-04.
 **Observed behavior:** Inner flex row had `min-w-[520px]` plus `overflow-x-auto`, adding a second scrollbar under the page scroll.  
 **Expected behavior:** One primary page scroll; stage labels wrap or share width.  
 **Root cause:** Timeline assumed a desktop min width instead of a flexible track.  
-**Fix:** Remove min-width; `flex-1 min-w-0` connectors; wrapping stage labels.  
+**Fix:** Remove min-width. At `sm+`, flexible connected stages. Below `sm`, wrapping chips so “Underwrite” / “Approve” cannot collide.  
 **Regression tests:** 320, 375, 768, 1280. Confirm no inner horizontal bar when the page itself does not need one.  
 **Status:** Resolved
 
@@ -185,7 +185,7 @@ All IDs are stable. Status reflects the layout-engineer pass of 2026-09-04.
 **Observed behavior:** Four columns cannot remain readable if fully squeezed.  
 **Expected behavior:** Table does not force page-level horizontal scroll.  
 **Root cause:** Tabular comparison needs a minimum column width.  
-**Fix:** Wrapper `overflow-x-auto` + table `min-w-[28rem]` so only the table scrolls.  
+**Fix:** Below `sm`, stacked role cards. At `sm+`, a full-width table. No page-level horizontal scroll.  
 **Regression tests:** 320, 375 — page does not shift sideways; table is independently scrollable.  
 **Status:** Resolved (accepted contained table scroll)
 

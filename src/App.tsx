@@ -9,7 +9,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen min-w-0 flex flex-col">
-      <nav className="sticky top-0 z-[var(--z-sticky-header)] border-b border-slate-800 bg-slate-950/95 backdrop-blur px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
+      <nav className="sticky top-0 z-[var(--z-sticky-header)] border-b border-slate-800 bg-slate-950 px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
         <div className="min-w-0">
           <div className="font-semibold truncate">JRPU Lending Protocol</div>
           <div className="text-xs text-slate-500 hidden sm:block">Depositor · Borrower · Protocol</div>

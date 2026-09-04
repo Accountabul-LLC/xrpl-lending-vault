@@ -56,7 +56,7 @@ Primary workflows still available:
 
 ## Remaining / accepted
 
-- Lesson 1 roles table may scroll horizontally **inside its wrapper** on 320px-wide screens (UI-011). That is better than a page-level sideways scroll.
+- Lesson 1 roles use stacked cards below `sm` instead of a squeezed four-column table (UI-011).
 - 2D WebGL fallback may scroll **inside the canvas frame** if zoomed text exceeds the viewport-relative height (UI-012). Lesson controls below stay reachable.
 
 ## Stop condition

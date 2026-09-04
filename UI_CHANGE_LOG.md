@@ -16,7 +16,7 @@ Layout-engineer pass. No branding, color, or copy rewrite.
 
 - `src/academy/Academy.tsx`
   - Grid: `minmax(13rem,15rem) + minmax(0,1fr)`
-  - Compact numbered lesson chips below `lg`; full list sticky at `lg+`
+  - Compact numbered lesson chips below `lg`; full list sticky at `lg+`; chips sized to fit a 320px row
   - Glossary in-flow on lesson 4 (no nested buttons)
   - Roles table contained scroll
   - Underwriting steps use `→` and wrap

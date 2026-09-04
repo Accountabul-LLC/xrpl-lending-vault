@@ -85,33 +85,62 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
             Someone supplies the money. Someone needs the money. Something manages the agreement
             between them. Click any node in the network to inspect it.
           </p>
-          <div className="overflow-x-auto max-w-full">
-            <table className="w-full min-w-[28rem] text-sm">
+          <div className="sm:hidden space-y-3">
+            {[
+              {
+                role: 'Depositor',
+                provides: 'Capital',
+                receives: 'Yield / repayment economics',
+                duty: 'Fund the vault'
+              },
+              {
+                role: 'Borrower',
+                provides: 'Repayment obligation',
+                receives: 'Capital',
+                duty: 'Repay the loan'
+              },
+              {
+                role: 'Protocol',
+                provides: 'Infrastructure',
+                receives: 'Fees',
+                duty: 'Facilitate and administer'
+              }
+            ].map((row) => (
+              <div key={row.role} className="rounded-lg border border-slate-800 p-3 space-y-1 text-sm">
+                <div className="font-semibold text-slate-100">{row.role}</div>
+                <div className="text-slate-400">Provides: {row.provides}</div>
+                <div className="text-slate-400">Receives: {row.receives}</div>
+                <div className="text-slate-400">Primary responsibility: {row.duty}</div>
+              </div>
+            ))}
+          </div>
+          <div className="hidden sm:block overflow-x-auto max-w-full">
+            <table className="w-full text-sm">
               <thead className="text-left text-slate-500">
                 <tr>
-                  <th className="py-2">Role</th>
-                  <th>Provides</th>
-                  <th>Receives</th>
+                  <th className="py-2 pr-3">Role</th>
+                  <th className="pr-3">Provides</th>
+                  <th className="pr-3">Receives</th>
                   <th>Primary responsibility</th>
                 </tr>
               </thead>
               <tbody className="text-slate-200">
                 <tr className="border-t border-slate-800">
-                  <td className="py-2">Depositor</td>
-                  <td>Capital</td>
-                  <td>Yield / repayment economics</td>
+                  <td className="py-2 pr-3">Depositor</td>
+                  <td className="pr-3">Capital</td>
+                  <td className="pr-3">Yield / repayment economics</td>
                   <td>Fund the vault</td>
                 </tr>
                 <tr className="border-t border-slate-800">
-                  <td className="py-2">Borrower</td>
-                  <td>Repayment obligation</td>
-                  <td>Capital</td>
+                  <td className="py-2 pr-3">Borrower</td>
+                  <td className="pr-3">Repayment obligation</td>
+                  <td className="pr-3">Capital</td>
                   <td>Repay the loan</td>
                 </tr>
                 <tr className="border-t border-slate-800">
-                  <td className="py-2">Protocol</td>
-                  <td>Infrastructure</td>
-                  <td>Fees</td>
+                  <td className="py-2 pr-3">Protocol</td>
+                  <td className="pr-3">Infrastructure</td>
+                  <td className="pr-3">Fees</td>
                   <td>Facilitate and administer</td>
                 </tr>
               </tbody>
@@ -464,7 +493,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
         <div className="text-xs uppercase tracking-wide text-slate-500 px-1 lg:px-2">
           JRPU Lending Academy
         </div>
-        <div className="lg:hidden mt-2 flex flex-wrap gap-1.5">
+        <div className="lg:hidden mt-2 flex flex-wrap gap-1">
           {LESSONS.map((title, i) => (
             <button
               key={title}
@@ -473,7 +502,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
               aria-current={i === lesson ? 'page' : undefined}
               onClick={() => setLesson(i)}
               className={
-                'h-9 min-w-9 px-2.5 rounded-lg text-sm transition ' +
+                'h-8 w-8 rounded-lg text-sm transition ' +
                 (i === lesson ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800')
               }
             >

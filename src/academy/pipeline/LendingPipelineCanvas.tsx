@@ -89,21 +89,30 @@ export function LendingPipelineCanvas({
   const { vault } = sim.state
   const showFallback = !webglOk
   const { w: fw, h: fh } = frameSize
+  const compactOverlays = fw > 0 && (fw < 520 || fh < 360)
+  const tinyOverlays = fw > 0 && fw < 360
   const protocolPos =
-    positions.protocol && fw && fh
+    !compactOverlays && positions.protocol && fw && fh
       ? clampPoint(positions.protocol.x, positions.protocol.y - 48, fw, fh, 72, 22)
       : null
   const depositorPos =
-    positions.depositor && fw && fh
-      ? clampPoint(positions.depositor.x, positions.depositor.y + 36, fw, fh, 64, 28)
+    !tinyOverlays && positions.depositor && fw && fh
+      ? clampPoint(positions.depositor.x, positions.depositor.y + 28, fw, fh, compactOverlays ? 56 : 64, 28)
       : null
   const borrowerPos =
-    positions.borrower && fw && fh
-      ? clampPoint(positions.borrower.x, positions.borrower.y + 36, fw, fh, 64, 28)
+    !tinyOverlays && positions.borrower && fw && fh
+      ? clampPoint(positions.borrower.x, positions.borrower.y + 28, fw, fh, compactOverlays ? 56 : 64, 28)
       : null
   const vaultPos =
     positions.vault && fw && fh
-      ? clampPoint(positions.vault.x, positions.vault.y - 70, fw, fh, 96, 48)
+      ? clampPoint(
+          positions.vault.x,
+          positions.vault.y - (compactOverlays ? 4 : 70),
+          fw,
+          fh,
+          compactOverlays ? 88 : 96,
+          compactOverlays ? 52 : 48
+        )
       : null
 
   return (
