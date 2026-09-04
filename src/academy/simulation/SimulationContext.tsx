@@ -18,7 +18,6 @@ import {
 import type {
   AnimationRequest,
   EntityId,
-  FlowKind,
   LifecycleStage,
   SimulationState
 } from './types'
