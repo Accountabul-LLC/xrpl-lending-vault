@@ -4,5 +4,10 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 
 export default defineConfig({
   plugins: [react(), nodePolyfills({ globals: { Buffer: true, global: true, process: true } })],
-  server: { port: 5173 }
+  server: {
+    port: 5173,
+    host: true,
+    // Allow Cloudflare quick tunnels / localtunnel previews during demos
+    allowedHosts: true
+  }
 })
