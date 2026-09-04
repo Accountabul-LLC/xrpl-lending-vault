@@ -2,9 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
 body {
   background: #0b1220;
   color: #e2e8f0;
+}
+
+/* Academy desktop workstation: prefer one page scroll, no nested sidebar scroll */
+@media (min-width: 1024px) {
+  .academy-shell > aside {
+    overflow: visible;
+  }
 }
 
 .flow-dot {

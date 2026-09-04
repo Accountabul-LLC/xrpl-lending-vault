@@ -3,8 +3,8 @@ import { LIFECYCLE_LABELS, LIFECYCLE_STAGES, type LifecycleStage } from '../simu
 export function LifecycleTracker({ stage }: { stage: LifecycleStage }) {
   const idx = LIFECYCLE_STAGES.indexOf(stage)
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-3 overflow-x-auto">
-      <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-2">Capital lifecycle</div>
+    <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 overflow-x-auto">
+      <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1.5">Capital lifecycle</div>
       <div className="flex items-center gap-0 min-w-[520px]">
         {LIFECYCLE_STAGES.map((s, i) => {
           const active = i === idx

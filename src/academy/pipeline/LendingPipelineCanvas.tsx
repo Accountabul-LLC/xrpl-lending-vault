@@ -65,7 +65,7 @@ export function LendingPipelineCanvas({
   const showFallback = !webglOk
 
   return (
-    <div className="relative w-full h-[420px] md:h-[520px] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden">
+    <div className="relative w-full h-[min(58vh,640px)] min-h-[360px] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden">
       {showFallback ? (
         <FallbackPipeline lesson={lesson} />
       ) : (

@@ -76,61 +76,62 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
   switch (lesson) {
     case 0:
       return (
-        <div className="space-y-4 text-slate-300">
-          <p>
-            Someone supplies the money. Someone needs the money. Something manages the agreement
-            between them. Click any node in the network to inspect it.
-          </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-left text-slate-500">
-                <tr>
-                  <th className="py-2">Role</th>
-                  <th>Provides</th>
-                  <th>Receives</th>
-                  <th>Primary responsibility</th>
-                </tr>
-              </thead>
-              <tbody className="text-slate-200">
-                <tr className="border-t border-slate-800">
-                  <td className="py-2">Depositor</td>
-                  <td>Capital</td>
-                  <td>Yield / repayment economics</td>
-                  <td>Fund the vault</td>
-                </tr>
-                <tr className="border-t border-slate-800">
-                  <td className="py-2">Borrower</td>
-                  <td>Repayment obligation</td>
-                  <td>Capital</td>
-                  <td>Repay the loan</td>
-                </tr>
-                <tr className="border-t border-slate-800">
-                  <td className="py-2">Protocol</td>
-                  <td>Infrastructure</td>
-                  <td>Fees</td>
-                  <td>Facilitate and administer</td>
-                </tr>
-              </tbody>
-            </table>
+        <div className="space-y-3 text-slate-300">
+          <div className="grid sm:grid-cols-3 gap-3">
+            {(
+              [
+                {
+                  title: 'Depositor',
+                  tone: 'border-emerald-500/40 bg-emerald-950/20',
+                  provides: 'Capital',
+                  receives: 'Yield / repayment economics',
+                  duty: 'Fund the vault',
+                  entity: 'depositor' as const
+                },
+                {
+                  title: 'Borrower',
+                  tone: 'border-amber-500/40 bg-amber-950/20',
+                  provides: 'Repayment obligation',
+                  receives: 'Capital',
+                  duty: 'Repay the loan',
+                  entity: 'borrower' as const
+                },
+                {
+                  title: 'Protocol',
+                  tone: 'border-indigo-500/40 bg-indigo-950/20',
+                  provides: 'Infrastructure',
+                  receives: 'Fees',
+                  duty: 'Facilitate and administer',
+                  entity: 'protocol' as const
+                }
+              ] as const
+            ).map((role) => (
+              <button
+                key={role.title}
+                type="button"
+                onClick={() => sim.selectEntity(role.entity)}
+                className={`rounded-xl border p-3 text-left transition hover:brightness-110 ${role.tone}`}
+              >
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-100">
+                  {role.title}
+                </div>
+                <div className="mt-2 space-y-1 text-[11px] text-slate-400">
+                  <div>
+                    <span className="text-slate-500">Provides:</span> {role.provides}
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Receives:</span> {role.receives}
+                  </div>
+                  <div>
+                    <span className="text-slate-500">Duty:</span> {role.duty}
+                  </div>
+                </div>
+              </button>
+            ))}
           </div>
-          <p className="rounded-lg border border-amber-700/40 bg-amber-950/20 p-3 text-sm">
+          <p className="rounded-lg border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-xs">
             You are not buying the vault. You are providing capital to the vault.
           </p>
-          <details
-            className="text-sm text-slate-400"
-            open={sim.state.showAdvancedRoles}
-            onToggle={(e) => sim.toggleAdvanced((e.target as HTMLDetailsElement).open)}
-          >
-            <summary className="cursor-pointer text-slate-200">Advanced Lending Roles →</summary>
-            <ul className="mt-2 list-disc pl-5 space-y-1">
-              <li>Guarantor — optional; stands behind the borrower if they do not perform</li>
-              <li>Broker / loan originator — finds and packages borrowers, earns a point</li>
-              <li>Underwriter / servicer / collateral custodian — operational extras</li>
-            </ul>
-            <p className="mt-2 text-xs text-indigo-300">
-              Expanding this list animates optional roles into the network.
-            </p>
-          </details>
         </div>
       )
     case 1:
@@ -443,25 +444,41 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson])
 
+  const lessonBlurb: Record<number, string> = {
+    0: 'Someone supplies the money. Someone needs the money. Something manages the agreement.',
+    1: 'A vault is a pool of capital governed by predefined rules — depositors own a position, not the vault.',
+    2: 'Liquidity providers deposit capital into the vault and earn yield from borrower repayments.',
+    3: 'Borrowers request capital from the vault; the protocol underwrites, approves, and funds the loan.',
+    4: 'Loan terms define principal, rate, schedule, collateral, and what happens if payment stops.',
+    5: 'Follow the same dollars: deposit → vault → loan → repayment → yield distribution.',
+    6: 'Yield is not magic. Defaults, liquidity gaps, and concentration can impair returns.',
+    7: 'Sandbox classroom money — every action updates the live network visualization.'
+  }
+
   return (
-    <div className="grid lg:grid-cols-[16rem_1fr] gap-6">
-      <aside className="space-y-2 relative z-20">
-        <div className="text-xs uppercase tracking-wide text-slate-500 px-2">JRPU Lending Academy</div>
-        {LESSONS.map((title, i) => (
-          <button
-            key={title}
-            type="button"
-            onClick={() => setLesson(i)}
-            className={
-              'w-full text-left rounded-lg px-3 py-2 text-sm transition ' +
-              (i === lesson ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900')
-            }
-          >
-            <span className="text-xs opacity-70">Lesson {i + 1}</span>
-            <div>{title}</div>
-          </button>
-        ))}
-        <label className="mt-4 flex items-center gap-2 px-2 text-xs text-slate-400 cursor-pointer">
+    <div className="academy-shell h-[calc(100vh-3.25rem)] min-h-[640px] grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] gap-3 lg:gap-4">
+      {/* Compact lesson rail — no nested scrollbar on desktop */}
+      <aside className="relative z-20 flex flex-col gap-1 lg:overflow-visible">
+        <div className="text-[10px] uppercase tracking-wide text-slate-500 px-2 pb-1">
+          JRPU Lending Academy
+        </div>
+        <nav className="flex flex-col gap-0.5" aria-label="Lessons">
+          {LESSONS.map((title, i) => (
+            <button
+              key={title}
+              type="button"
+              onClick={() => setLesson(i)}
+              className={
+                'w-full text-left rounded-md px-2.5 py-1.5 text-[13px] leading-snug transition ' +
+                (i === lesson ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900/80')
+              }
+            >
+              <span className="block text-[10px] opacity-70 leading-none mb-0.5">Lesson {i + 1}</span>
+              <span className="block">{title}</span>
+            </button>
+          ))}
+        </nav>
+        <label className="mt-2 flex items-center gap-2 px-2 text-[11px] text-slate-400 cursor-pointer">
           <input
             type="checkbox"
             checked={reduceMotion}
@@ -472,23 +489,36 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
         </label>
       </aside>
 
-      <div className="space-y-5 min-w-0">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-indigo-300">How a loan works</p>
-          <h1 className="text-2xl font-bold mt-1">
+      {/* Full-width main workspace */}
+      <div className="min-w-0 flex flex-col gap-2.5 lg:overflow-auto">
+        <header className="shrink-0">
+          <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
+            How a loan works
+          </p>
+          <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight">
             Lesson {lesson + 1}: {LESSONS[lesson]}
           </h1>
+          <p className="text-xs text-slate-400 mt-1 max-w-4xl">{lessonBlurb[lesson]}</p>
+        </header>
+
+        {/* Visualization + advanced roles side panel */}
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] gap-3 min-h-0">
+          <div className="min-w-0 flex flex-col gap-2">
+            <LendingPipelineCanvas lesson={lesson} reduceMotionOverride={reduceMotion} />
+            <LifecycleTracker stage={sim.state.lifecycleStage} />
+          </div>
+          <AdvancedRolesPanel />
         </div>
 
-        <LendingPipelineCanvas lesson={lesson} reduceMotionOverride={reduceMotion} />
-        <LifecycleTracker stage={sim.state.lifecycleStage} />
-
-        <div className="grid lg:grid-cols-[1fr_18rem] gap-4">
-          <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
-          <div className="space-y-3">
+        {/* Supporting content: lesson copy + entity inspector */}
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(240px,320px)] gap-3 items-start">
+          <div className="min-w-0">
+            <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
+          </div>
+          <div className="space-y-2 xl:sticky xl:top-0">
             <EntityPanel />
             {!sim.state.selectedEntity && (
-              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-xs text-slate-500">
+              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-[11px] text-slate-500">
                 Click Protocol, Vault, Depositor, or Borrower in the visualization to inspect
                 responsibilities and balances.
               </div>
@@ -496,7 +526,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2 pt-2">
+        <div className="flex flex-wrap gap-2 pt-1 pb-2 shrink-0">
           <Btn
             className="bg-slate-700 hover:bg-slate-600"
             disabled={lesson === 0}
@@ -510,6 +540,64 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
             <Btn onClick={onOpenLab}>Open the live Devnet lab</Btn>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+function AdvancedRolesPanel() {
+  const sim = useSimulation()
+  const open = sim.state.showAdvancedRoles
+  const roles = [
+    { id: 'guarantor' as const, name: 'Guarantor', blurb: 'Optional; stands behind the borrower if they do not perform.' },
+    { id: 'broker' as const, name: 'Broker / Originator', blurb: 'Finds and packages borrowers; earns a point.' },
+    { id: 'underwriter' as const, name: 'Underwriter', blurb: 'Evaluates credit risk before approval.' },
+    { id: 'servicer' as const, name: 'Servicer', blurb: 'Collects payments and manages ongoing loan ops.' },
+    { id: 'custodian' as const, name: 'Collateral Custodian', blurb: 'Holds pledged assets for the facility.' }
+  ]
+
+  return (
+    <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-3 flex flex-col gap-2 h-fit xl:min-h-[200px]">
+      <div className="flex items-center justify-between gap-2">
+        <div>
+          <div className="text-[10px] uppercase tracking-wide text-slate-500">Advanced roles</div>
+          <div className="text-sm font-medium text-slate-200">Institutional extras</div>
+        </div>
+        <button
+          type="button"
+          onClick={() => sim.toggleAdvanced(!open)}
+          className={
+            'text-[11px] px-2 py-1 rounded-md border transition ' +
+            (open
+              ? 'border-indigo-400/50 bg-indigo-950/50 text-indigo-100'
+              : 'border-slate-700 text-slate-400 hover:border-slate-500')
+          }
+        >
+          {open ? 'Enabled' : 'Show on map'}
+        </button>
+      </div>
+      <p className="text-[11px] text-slate-500">
+        Optional roles attach around the core three-party model. Enable to animate them into the
+        network.
+      </p>
+      <div className="grid grid-cols-1 gap-1.5">
+        {roles.map((r) => (
+          <button
+            key={r.id}
+            type="button"
+            disabled={!open}
+            onClick={() => sim.selectEntity(r.id)}
+            className={
+              'text-left rounded-lg border px-2.5 py-2 transition ' +
+              (open
+                ? 'border-slate-700 hover:border-indigo-500/40 bg-slate-900/40'
+                : 'border-slate-800/60 opacity-50 cursor-not-allowed')
+            }
+          >
+            <div className="text-xs font-medium text-slate-200">{r.name}</div>
+            <div className="text-[10px] text-slate-500 mt-0.5 leading-snug">{r.blurb}</div>
+          </button>
+        ))}
       </div>
     </div>
   )
