@@ -50,7 +50,7 @@ function Term({
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <span className="relative inline-block max-w-full align-baseline">
+    <span className="inline-flex flex-col items-start max-w-full align-top">
       <button
         type="button"
         aria-expanded={open}
@@ -64,8 +64,8 @@ function Term({
       </button>
       {open && (
         <span
-          role="tooltip"
-          className="absolute z-[var(--z-popover)] left-0 top-full mt-1 w-64 max-w-[min(16rem,calc(100vw-2rem))] rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs text-slate-300 shadow-xl"
+          role="note"
+          className="mt-1 w-full max-w-prose rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs text-slate-300 shadow-xl"
         >
           {GLOSSARY[name]}
         </span>

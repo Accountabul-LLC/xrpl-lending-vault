@@ -100,7 +100,7 @@ All IDs are stable. Status reflects the layout-engineer pass of 2026-09-04.
 **Observed behavior:** Protocol / vault / party labels were placed from projected 3D coordinates. The frame used `overflow-hidden` (needed for rounded corners), so labels were cut off.  
 **Expected behavior:** Labels stay inside the visualization region.  
 **Root cause:** Absolute positioning with no clamp; overflow hidden used as a visual mask rather than a layout bound.  
-**Fix:** Clamp overlay points to the frame size; cap label `max-width`. On short/narrow frames omit the Protocol HTML label so it cannot sit on the vault card; below 360px width omit party labels and keep the vault HUD. Do not rely on overflow-hidden as the only defense.  
+**Fix:** Stop projecting HTML labels from 3D coordinates. Place a CSS flex HUD (`data-viz-hud`) around the scene: protocol + vault stacked at the top, depositor/borrower at the bottom corners. Overlap is structurally impossible because the regions share a column/row with gap, not independent `left/top` math.  
 **Regression tests:** Lessons 0–7; 320, 768, 1280.  
 **Status:** Resolved
 
@@ -134,7 +134,7 @@ All IDs are stable. Status reflects the layout-engineer pass of 2026-09-04.
 **Observed behavior:** Popover was `w-64` (`256px`) from `left-0`, overlapping the neighboring term card. Lesson 4 wrapped `Term` (a `<button>`) inside another `<button>`. `z-10` sat below the old sidebar `z-20`.  
 **Expected behavior:** Definitions stay in-flow or within the card; no nested interactive elements.  
 **Root cause:** Overlay tooltip used as a layout device; nested controls.  
-**Fix:** Lesson 4 shows `GLOSSARY` in-flow when a term is selected. Remaining `Term` popovers use `--z-popover` and `max-w-[min(16rem,calc(100vw-2rem))]`.  
+**Fix:** Glossary definitions expand in-flow (`role="note"`). Lesson 4 shows `GLOSSARY` inside the selected term card. No absolute popover.  
 **Regression tests:** Lesson 2 term clicks; Lesson 4 term grid at 375 and 1280; 150% zoom.  
 **Status:** Resolved
 

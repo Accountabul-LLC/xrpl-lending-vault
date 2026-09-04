@@ -27,7 +27,7 @@ Layout-engineer pass. No branding, color, or copy rewrite.
 
 ## Visualization
 
-- `src/academy/pipeline/LendingPipelineCanvas.tsx` — viewport-relative height; clamped overlay labels; frame `ResizeObserver`.
+- `src/academy/pipeline/LendingPipelineCanvas.tsx` — viewport-relative height; CSS flex HUD (`data-viz-hud`) instead of 3D-projected labels; frame `ResizeObserver`.
 - `src/academy/pipeline/LendingNetworkScene.ts` — `ResizeObserver` on the mount node; canvas max 100%; pixel ratio updated on resize.
 - `src/academy/pipeline/SceneMount.tsx` — mount node `min-w-0 overflow-hidden`.
 - `src/academy/pipeline/FallbackPipeline.tsx` — tighter spacing; inner scroll only if the diagram exceeds the frame.

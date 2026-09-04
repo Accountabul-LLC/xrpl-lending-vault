@@ -25,9 +25,11 @@ The layout mixed a **fixed-height WebGL stage**, a **sidebar that only existed a
 
 1. **Tracks that can shrink:** `minmax(0, 1fr)` for workspace; `minmax(13rem, 15rem)` for the lesson rail.
 2. **One scroll context:** page scroll plus compact mobile lesson chips; no extra sidebar scroller for eight items.
-3. **Canvas follows its frame:** `ResizeObserver`, viewport-relative height, labels clamped inside the rounded stage.
+3. **Canvas follows its frame:** `ResizeObserver`, viewport-relative height, and a CSS flex HUD so protocol / vault / party labels cannot occupy the same pixels.
 4. **Forms stack when the card is narrow:** Lab cover / origination / repayment.
 5. **Z-index is a scale**, not a patch: header 20, sidebar 10, banner 15, popover 40.
+
+Overlap retest (Playwright bounding boxes): 0 intersecting HUD regions, header buttons, lesson nav, or sidebar-vs-canvas pairs across 320–1920, lessons 1/2/4/5, Lab, and 100–200% zoom.
 
 ## Severity roll-up
 
