@@ -426,19 +426,26 @@ function Sandbox({ reduceMotion }: { reduceMotion: boolean }) {
 }
 
 function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
-  const [lesson, setLesson] = useState(0)
+  const [lesson, setLesson] = useState(() => {
+    if (typeof window === 'undefined') return 0
+    const n = Number(new URLSearchParams(window.location.search).get('lesson'))
+    return Number.isFinite(n) && n >= 1 && n <= LESSONS.length ? n - 1 : 0
+  })
   const [reduceMotion, setReduceMotion] = useState(false)
   const sim = useSimulation()
 
   useEffect(() => {
     sim.setLessonPreset(lesson)
+    const url = new URL(window.location.href)
+    url.searchParams.set('lesson', String(lesson + 1))
+    window.history.replaceState({}, '', url)
     // intentionally only when lesson changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lesson])
 
   return (
     <div className="grid lg:grid-cols-[16rem_1fr] gap-6">
-      <aside className="space-y-2">
+      <aside className="space-y-2 relative z-20">
         <div className="text-xs uppercase tracking-wide text-slate-500 px-2">JRPU Lending Academy</div>
         {LESSONS.map((title, i) => (
           <button
