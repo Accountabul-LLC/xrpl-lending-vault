@@ -10,7 +10,8 @@ export default function SceneMount({
   onEntityClick,
   onAnimationComplete,
   onAnimationStart,
-  registerProject
+  registerProject,
+  onWebglFailure
 }: {
   lesson: number
   reducedMotion: boolean
@@ -19,6 +20,7 @@ export default function SceneMount({
   onAnimationComplete: (id: string) => void
   onAnimationStart: (id: string) => void
   registerProject: (fn: (id: EntityId) => { x: number; y: number } | null) => void
+  onWebglFailure?: () => void
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<LendingNetworkScene | null>(null)
@@ -32,17 +34,22 @@ export default function SceneMount({
   useEffect(() => {
     const root = rootRef.current
     if (!root) return
-    const scene = new LendingNetworkScene(root, {
-      onEntityClick: (id) => clickRef.current(id),
-      onAnimationComplete: (id) => completeRef.current(id),
-      onAnimationStart: (id) => startRef.current(id),
-      takeCallback: takeAnimationCallback
-    })
-    sceneRef.current = scene
-    registerProject((id) => scene.projectEntity(id))
-    return () => {
-      scene.dispose()
-      sceneRef.current = null
+    try {
+      const scene = new LendingNetworkScene(root, {
+        onEntityClick: (id) => clickRef.current(id),
+        onAnimationComplete: (id) => completeRef.current(id),
+        onAnimationStart: (id) => startRef.current(id),
+        takeCallback: takeAnimationCallback
+      })
+      sceneRef.current = scene
+      registerProject((id) => scene.projectEntity(id))
+      return () => {
+        scene.dispose()
+        sceneRef.current = null
+      }
+    } catch {
+      onWebglFailure?.()
+      return
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

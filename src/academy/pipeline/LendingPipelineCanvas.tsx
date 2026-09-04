@@ -1,6 +1,8 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
-import { useSimulation } from '../simulation/SimulationContext'
+import { takeAnimationCallback, useSimulation } from '../simulation/SimulationContext'
 import type { EntityId } from '../simulation/types'
+import { FallbackPipeline } from './FallbackPipeline'
+import { PipelineErrorBoundary } from './PipelineErrorBoundary'
 
 const SceneLoader = lazy(() => import('./SceneMount'))
 
@@ -28,13 +30,14 @@ export function LendingPipelineCanvas({
   const prefers = usePrefersReducedMotion()
   const reducedMotion = reduceMotionOverride || prefers
   const [positions, setPositions] = useState<Partial<Record<EntityId, { x: number; y: number }>>>({})
+  const [webglOk, setWebglOk] = useState(true)
   const projectRef = useRef<((id: EntityId) => { x: number; y: number } | null) | null>(null)
 
   useEffect(() => {
     let raf = 0
     const tick = () => {
       raf = requestAnimationFrame(tick)
-      if (!projectRef.current) return
+      if (!projectRef.current || !webglOk) return
       const next: Partial<Record<EntityId, { x: number; y: number }>> = {}
       ;(['protocol', 'vault', 'depositor', 'borrower'] as EntityId[]).forEach((id) => {
         const p = projectRef.current?.(id)
@@ -44,39 +47,60 @@ export function LendingPipelineCanvas({
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [])
+  }, [webglOk])
+
+  // When 3D is unavailable, apply queued animation completions immediately so UI still works.
+  useEffect(() => {
+    if (webglOk) return
+    for (const anim of sim.state.pendingAnimations) {
+      if (anim.started) continue
+      sim.startAnimation(anim.id)
+      const cb = takeAnimationCallback(anim.id)
+      cb?.()
+      sim.clearAnimation(anim.id)
+    }
+  }, [sim, sim.state.pendingAnimations, webglOk])
 
   const { vault } = sim.state
+  const showFallback = !webglOk
 
   return (
     <div className="relative w-full h-[420px] md:h-[520px] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden">
-      <Suspense
-        fallback={
-          <div className="absolute inset-0 grid place-items-center text-slate-500 text-sm">
-            Loading network visualization…
-          </div>
-        }
-      >
-        <SceneLoader
-          lesson={lesson}
-          reducedMotion={reducedMotion}
-          state={sim.state}
-          onEntityClick={(id) => sim.selectEntity(id)}
-          onAnimationComplete={(id) => sim.clearAnimation(id)}
-          onAnimationStart={(id) => sim.startAnimation(id)}
-          registerProject={(fn) => {
-            projectRef.current = fn
-          }}
-        />
-      </Suspense>
+      {showFallback ? (
+        <FallbackPipeline lesson={lesson} />
+      ) : (
+        <PipelineErrorBoundary
+          fallback={<FallbackOnError lesson={lesson} onFallback={() => setWebglOk(false)} />}
+        >
+          <Suspense
+            fallback={
+              <div className="absolute inset-0 grid place-items-center text-slate-500 text-sm">
+                Loading network visualization…
+              </div>
+            }
+          >
+            <SceneLoader
+              lesson={lesson}
+              reducedMotion={reducedMotion}
+              state={sim.state}
+              onEntityClick={(id) => sim.selectEntity(id)}
+              onAnimationComplete={(id) => sim.clearAnimation(id)}
+              onAnimationStart={(id) => sim.startAnimation(id)}
+              registerProject={(fn) => {
+                projectRef.current = fn
+              }}
+              onWebglFailure={() => setWebglOk(false)}
+            />
+          </Suspense>
+        </PipelineErrorBoundary>
+      )}
 
-      {/* HTML labels projected over the scene */}
-      {positions.protocol && (
+      {!showFallback && positions.protocol && (
         <Label x={positions.protocol.x} y={positions.protocol.y - 48} tone="protocol">
           Protocol / Facilitator
         </Label>
       )}
-      {positions.depositor && (
+      {!showFallback && positions.depositor && (
         <Label x={positions.depositor.x} y={positions.depositor.y + 36} tone="depositor">
           Depositor
           <span className="block text-[10px] font-mono text-emerald-200/80">
@@ -84,7 +108,7 @@ export function LendingPipelineCanvas({
           </span>
         </Label>
       )}
-      {positions.borrower && (
+      {!showFallback && positions.borrower && (
         <Label x={positions.borrower.x} y={positions.borrower.y + 36} tone="borrower">
           Borrower
           <span className="block text-[10px] font-mono text-amber-200/80">
@@ -92,7 +116,7 @@ export function LendingPipelineCanvas({
           </span>
         </Label>
       )}
-      {positions.vault && (
+      {!showFallback && positions.vault && (
         <div
           className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 text-center"
           style={{ left: positions.vault.x, top: positions.vault.y - 70 }}
@@ -126,6 +150,19 @@ export function LendingPipelineCanvas({
       )}
     </div>
   )
+}
+
+function FallbackOnError({
+  lesson,
+  onFallback
+}: {
+  lesson: number
+  onFallback: () => void
+}) {
+  useEffect(() => {
+    onFallback()
+  }, [onFallback])
+  return <FallbackPipeline lesson={lesson} />
 }
 
 function Label({

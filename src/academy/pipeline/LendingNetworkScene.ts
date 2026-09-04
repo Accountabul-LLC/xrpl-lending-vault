@@ -167,7 +167,23 @@ export class LendingNetworkScene {
     this.camera.position.set(...LESSON_CAMERAS[0].position)
     this.camera.lookAt(...LESSON_CAMERAS[0].lookAt)
 
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' })
+    try {
+      this.renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance'
+      })
+    } catch (err) {
+      throw new Error(
+        `WebGL unavailable: ${err instanceof Error ? err.message : String(err)}`
+      )
+    }
+    // Some environments construct a renderer but fail on context creation.
+    const gl = this.renderer.getContext()
+    if (!gl) {
+      this.renderer.dispose()
+      throw new Error('WebGL context could not be created')
+    }
     this.renderer.setClearColor(0x000000, 0)
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75))
     root.appendChild(this.renderer.domElement)
