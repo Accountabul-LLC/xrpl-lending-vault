@@ -12,7 +12,7 @@ export default function App() {
       <nav className="shrink-0 border-b border-slate-800 px-4 lg:px-6 py-2.5 flex items-center justify-between gap-4">
         <div>
           <div className="font-semibold text-sm lg:text-base">JRPU Lending Protocol</div>
-          <div className="text-[11px] text-slate-500">Depositor · Borrower · Protocol</div>
+          <div className="text-[11px] text-slate-500">Basic and institutional lending academy</div>
         </div>
         <div className="flex gap-2">
           <button

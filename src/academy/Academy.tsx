@@ -3,8 +3,13 @@ import { Btn, Card, Stat } from '../ui'
 import { EntityPanel } from './components/EntityPanel'
 import { LifecyclePlayer } from './components/LifecyclePlayer'
 import { LifecycleTracker } from './components/LifecycleTracker'
+import Institutional from './institutional/Institutional'
+import { INST_LESSONS } from './institutional/glossary'
+import { TrackToggle } from './institutional/shared'
 import { LendingPipelineCanvas } from './pipeline/LendingPipelineCanvas'
 import { SimulationProvider, useSimulation } from './simulation/SimulationContext'
+
+export type AcademyTrack = 'basic' | 'institutional'
 
 const LESSONS = [
   'Meet the Three Parties',
@@ -426,23 +431,66 @@ function Sandbox({ reduceMotion }: { reduceMotion: boolean }) {
   )
 }
 
+function parseTrack(): AcademyTrack {
+  if (typeof window === 'undefined') return 'basic'
+  return new URLSearchParams(window.location.search).get('track') === 'institutional'
+    ? 'institutional'
+    : 'basic'
+}
+
+function parseLesson(track: AcademyTrack): number {
+  if (typeof window === 'undefined') return 0
+  const n = Number(new URLSearchParams(window.location.search).get('lesson'))
+  const max = track === 'institutional' ? INST_LESSONS.length : LESSONS.length
+  return Number.isFinite(n) && n >= 1 && n <= max ? n - 1 : 0
+}
+
 function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
-  const [lesson, setLesson] = useState(() => {
-    if (typeof window === 'undefined') return 0
-    const n = Number(new URLSearchParams(window.location.search).get('lesson'))
-    return Number.isFinite(n) && n >= 1 && n <= LESSONS.length ? n - 1 : 0
-  })
+  const [track, setTrack] = useState<AcademyTrack>(parseTrack)
+  const [lesson, setLesson] = useState(() => parseLesson(parseTrack()))
+  const [instLesson, setInstLesson] = useState(() =>
+    parseTrack() === 'institutional' ? parseLesson('institutional') : 0
+  )
   const [reduceMotion, setReduceMotion] = useState(false)
   const sim = useSimulation()
 
+  function changeTrack(next: AcademyTrack) {
+    setTrack(next)
+    if (next === 'basic' && lesson < 0) setLesson(0)
+  }
+
   useEffect(() => {
+    if (track !== 'basic') return
     sim.setLessonPreset(lesson)
     const url = new URL(window.location.href)
+    url.searchParams.delete('track')
     url.searchParams.set('lesson', String(lesson + 1))
     window.history.replaceState({}, '', url)
-    // intentionally only when lesson changes
+    // intentionally only when lesson / track changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lesson])
+  }, [lesson, track])
+
+  useEffect(() => {
+    if (track !== 'institutional') return
+    const url = new URL(window.location.href)
+    url.searchParams.set('track', 'institutional')
+    url.searchParams.set('lesson', String(instLesson + 1))
+    window.history.replaceState({}, '', url)
+  }, [instLesson, track])
+
+  if (track === 'institutional') {
+    return (
+      <Institutional
+        onOpenLab={onOpenLab}
+        track={track}
+        setTrack={changeTrack}
+        lesson={instLesson}
+        setLesson={setInstLesson}
+        reduceMotion={reduceMotion}
+        setReduceMotion={setReduceMotion}
+      />
+    )
+  }
 
   const lessonBlurb: Record<number, string> = {
     0: 'Someone supplies the money. Someone needs the money. Something manages the agreement.',
@@ -459,8 +507,8 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
     <div className="academy-shell h-[calc(100vh-3.25rem)] min-h-[640px] grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] gap-3 lg:gap-4">
       {/* Compact lesson rail — no nested scrollbar on desktop */}
       <aside className="relative z-20 flex flex-col gap-1 lg:overflow-visible">
-        <div className="text-[10px] uppercase tracking-wide text-slate-500 px-2 pb-1">
-          JRPU Lending Academy
+        <div className="pb-1">
+          <TrackToggle track={track} onChange={changeTrack} />
         </div>
         <nav className="flex flex-col gap-0.5" aria-label="Lessons">
           {LESSONS.map((title, i) => (
@@ -507,7 +555,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
             <LendingPipelineCanvas lesson={lesson} reduceMotionOverride={reduceMotion} />
             <LifecycleTracker stage={sim.state.lifecycleStage} />
           </div>
-          <AdvancedRolesPanel />
+          <AdvancedRolesPanel onOpenInstitutional={() => changeTrack('institutional')} />
         </div>
 
         {/* Supporting content: lesson copy + entity inspector */}
@@ -545,7 +593,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
   )
 }
 
-function AdvancedRolesPanel() {
+function AdvancedRolesPanel({ onOpenInstitutional }: { onOpenInstitutional: () => void }) {
   const sim = useSimulation()
   const open = sim.state.showAdvancedRoles
   const roles = [
@@ -578,7 +626,16 @@ function AdvancedRolesPanel() {
       </div>
       <p className="text-[11px] text-slate-500">
         Optional roles attach around the core three-party model. Enable to animate them into the
-        network.
+        network. For the full desk — originator, underwriter, vault owner vs administrator,
+        first-loss, servicing, and credentials — open{' '}
+        <button
+          type="button"
+          className="underline text-indigo-300 hover:text-indigo-200"
+          onClick={onOpenInstitutional}
+        >
+          Institutional Lending
+        </button>
+        .
       </p>
       <div className="grid grid-cols-1 gap-1.5">
         {roles.map((r) => (
