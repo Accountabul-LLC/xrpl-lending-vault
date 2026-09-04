@@ -1,5 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Btn, Card, Stat } from '../ui'
+import { EntityPanel } from './components/EntityPanel'
+import { LifecyclePlayer } from './components/LifecyclePlayer'
+import { LifecycleTracker } from './components/LifecycleTracker'
+import { LendingPipelineCanvas } from './pipeline/LendingPipelineCanvas'
+import { SimulationProvider, useSimulation } from './simulation/SimulationContext'
 
 const LESSONS = [
   'Meet the Three Parties',
@@ -32,16 +37,26 @@ const GLOSSARY: Record<string, string> = {
   Liquidity:
     'Capital sitting in the vault and available to lend or return to depositors right now.',
   'Liquidity provider':
-    'A depositor. They provide capital to the vault; they do not buy or own the vault.'
+    'A depositor. They provide capital to the vault; they do not buy or own the vault.',
+  Interest: 'The cost of borrowing — the portion of repayment that becomes depositor yield.'
 }
 
-function Term({ name }: { name: keyof typeof GLOSSARY }) {
+function Term({
+  name,
+  onSelect
+}: {
+  name: keyof typeof GLOSSARY
+  onSelect?: (name: string) => void
+}) {
   const [open, setOpen] = useState(false)
   return (
     <span className="relative inline-block">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => {
+          setOpen((v) => !v)
+          onSelect?.(name)
+        }}
         className="text-indigo-300 underline decoration-dotted underline-offset-2 hover:text-indigo-200"
       >
         {name}
@@ -55,267 +70,17 @@ function Term({ name }: { name: keyof typeof GLOSSARY }) {
   )
 }
 
-function Party({
-  title,
-  subtitle,
-  tone
-}: {
-  title: string
-  subtitle: string
-  tone: 'protocol' | 'depositor' | 'borrower'
-}) {
-  const ring =
-    tone === 'protocol'
-      ? 'border-indigo-500/60 bg-indigo-950/40'
-      : tone === 'depositor'
-        ? 'border-emerald-500/50 bg-emerald-950/30'
-        : 'border-amber-500/50 bg-amber-950/30'
-  return (
-    <div className={`rounded-xl border px-4 py-3 text-center ${ring}`}>
-      <div className="text-sm font-semibold">{title}</div>
-      <div className="text-xs text-slate-400 mt-1">{subtitle}</div>
-    </div>
-  )
-}
+function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: boolean }) {
+  const sim = useSimulation()
 
-function ThreePartyDiagram() {
-  return (
-    <div className="space-y-4">
-      <Party title="Protocol / Facilitator" subtitle="Creates the vault, sets rules, administers" tone="protocol" />
-      <div className="text-center text-slate-500 text-xs">↓ administers</div>
-      <div className="rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-center">
-        <div className="text-sm font-semibold">Lending Vault</div>
-        <div className="text-xs text-slate-400">A pool of capital governed by predefined rules</div>
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <div className="text-center text-slate-500 text-xs">↙ capital in</div>
-          <Party title="Depositor" subtitle="Puts money in · earns yield" tone="depositor" />
-        </div>
-        <div className="space-y-2">
-          <div className="text-center text-slate-500 text-xs">↘ loan out</div>
-          <Party title="Borrower" subtitle="Receives capital · repays + interest" tone="borrower" />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-const FLOW_STEPS = [
-  { from: 'Alice', to: 'Vault', amount: '$10,000', label: 'Deposit' },
-  { from: 'Vault', to: 'Bob', amount: '$8,000', label: 'Loan' },
-  { from: 'Bob', to: 'Vault', amount: 'Principal + interest', label: 'Repayment' },
-  { from: 'Vault', to: 'Alice', amount: 'Yield', label: 'Distribution' }
-]
-
-function MoneyFlow() {
-  const [step, setStep] = useState(0)
-  const current = FLOW_STEPS[step]
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-3 gap-3 text-center text-sm">
-        <Party title="Alice" subtitle="Depositor" tone="depositor" />
-        <Party title="Vault" subtitle="Protocol" tone="protocol" />
-        <Party title="Bob" subtitle="Borrower" tone="borrower" />
-      </div>
-      <div className="rounded-xl border border-indigo-500/40 bg-indigo-950/30 px-4 py-5 text-center">
-        <div className="text-xs uppercase tracking-wide text-indigo-300">{current.label}</div>
-        <div className="text-xl font-semibold mt-1">
-          {current.from} → {current.to}
-        </div>
-        <div className="text-slate-300 mt-1">{current.amount}</div>
-        <div className="flow-dot mx-auto mt-4" />
-      </div>
-      <div className="flex gap-2">
-        <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => setStep((s) => Math.max(0, s - 1))}>
-          Previous
-        </Btn>
-        <Btn onClick={() => setStep((s) => (s + 1) % FLOW_STEPS.length)}>
-          {step === FLOW_STEPS.length - 1 ? 'Replay' : 'Next movement'}
-        </Btn>
-      </div>
-    </div>
-  )
-}
-
-type SimLoan = {
-  id: number
-  borrower: string
-  principal: number
-  outstanding: number
-  status: 'pending' | 'active' | 'paid' | 'defaulted'
-  guarantor?: string
-}
-
-function ClassroomSim() {
-  const [depositors, setDepositors] = useState([
-    { name: 'Alice', amount: 25000 },
-    { name: 'James', amount: 15000 },
-    { name: 'Company ABC', amount: 25000 },
-    { name: 'Priya', amount: 20000 },
-    { name: 'Northside Credit', amount: 15000 }
-  ])
-  const [borrowers, setBorrowers] = useState(['Bob’s Construction LLC', 'River Clinic', 'Elm Freight'])
-  const [loans, setLoans] = useState<SimLoan[]>([
-    { id: 1, borrower: 'Bob’s Construction LLC', principal: 8000, outstanding: 8000, status: 'active' },
-    { id: 2, borrower: 'River Clinic', principal: 18000, outstanding: 18000, status: 'active' },
-    { id: 3, borrower: 'Elm Freight', principal: 14000, outstanding: 14000, status: 'active' }
-  ])
-  const [depositAmt, setDepositAmt] = useState('5000')
-  const [loanAmt, setLoanAmt] = useState('4000')
-  const [newBorrower, setNewBorrower] = useState('New borrower LLC')
-  const [log, setLog] = useState<string[]>(['Classroom vault opened at $100,000 with $40,000 already lent.'])
-
-  const outstanding = loans.filter((l) => l.status === 'active').reduce((s, l) => s + l.outstanding, 0)
-  const capital = depositors.reduce((s, d) => s + d.amount, 0)
-  const available = Math.max(0, capital - outstanding)
-
-  function note(msg: string) {
-    setLog((l) => [msg, ...l].slice(0, 12))
-  }
-
-  function makeDeposit() {
-    const amt = Number(depositAmt)
-    if (!amt || amt <= 0) return
-    setDepositors((d) => [...d, { name: `LP ${d.length + 1}`, amount: amt }])
-    note(`Deposit of $${amt.toLocaleString()} added. You provided liquidity — you did not buy the vault.`)
-  }
-
-  function createBorrower() {
-    const name = newBorrower.trim() || `Borrower ${borrowers.length + 1}`
-    setBorrowers((b) => [...b, name])
-    note(`${name} can now request capital.`)
-  }
-
-  function requestLoan() {
-    const amt = Number(loanAmt)
-    const borrower = borrowers[borrowers.length - 1]
-    if (!amt || !borrower) return
-    setLoans((ls) => [
-      ...ls,
-      { id: Date.now(), borrower, principal: amt, outstanding: amt, status: 'pending' }
-    ])
-    note(`${borrower} requested $${amt.toLocaleString()}. Waiting for protocol approval.`)
-  }
-
-  function approveLoan() {
-    const pending = loans.find((l) => l.status === 'pending')
-    if (!pending) return note('No pending request.')
-    if (pending.principal > available) return note('Not enough available liquidity.')
-    setLoans((ls) => ls.map((l) => (l.id === pending.id ? { ...l, status: 'active' as const } : l)))
-    note(`Approved $${pending.principal.toLocaleString()} to ${pending.borrower}.`)
-  }
-
-  function makePayment() {
-    const active = loans.find((l) => l.status === 'active')
-    if (!active) return note('No active loan.')
-    const pay = Math.min(2000, active.outstanding)
-    setLoans((ls) =>
-      ls.map((l) => {
-        if (l.id !== active.id) return l
-        const next = l.outstanding - pay
-        return { ...l, outstanding: next, status: next <= 0 ? 'paid' : 'active' }
-      })
-    )
-    note(`${active.borrower} paid $${pay.toLocaleString()} back into the vault.`)
-  }
-
-  function defaultLoan() {
-    const active = loans.find((l) => l.status === 'active')
-    if (!active) return note('No active loan.')
-    setLoans((ls) => ls.map((l) => (l.id === active.id ? { ...l, status: 'defaulted', outstanding: 0 } : l)))
-    const haircut = Math.round(active.outstanding * 0.2)
-    setDepositors((ds) => {
-      const total = ds.reduce((s, d) => s + d.amount, 0)
-      return ds.map((d) => ({ ...d, amount: Math.round(d.amount - (d.amount / total) * haircut) }))
-    })
-    note(
-      `${active.borrower} defaulted. First-loss / socialized shortfall of ~$${haircut.toLocaleString()} hit depositor positions.`
-    )
-  }
-
-  function addGuarantor() {
-    const active = loans.find((l) => l.status === 'active' && !l.guarantor)
-    if (!active) return note('No unguaranteed active loan.')
-    setLoans((ls) => ls.map((l) => (l.id === active.id ? { ...l, guarantor: 'Sam Guarantor' } : l)))
-    note(`Sam Guarantor now stands behind ${active.borrower} if they do not perform.`)
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Vault capital" value={`$${capital.toLocaleString()}`} />
-        <Stat label="Depositors" value={`${depositors.length}`} />
-        <Stat label="Outstanding loans" value={`$${outstanding.toLocaleString()}`} />
-        <Stat label="Available liquidity" value={`$${available.toLocaleString()}`} />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <input
-          className="w-28 bg-slate-800 rounded px-2 py-1 text-sm"
-          value={depositAmt}
-          onChange={(e) => setDepositAmt(e.target.value)}
-        />
-        <Btn onClick={makeDeposit}>Make deposit</Btn>
-        <input
-          className="w-40 bg-slate-800 rounded px-2 py-1 text-sm"
-          value={newBorrower}
-          onChange={(e) => setNewBorrower(e.target.value)}
-        />
-        <Btn onClick={createBorrower}>Create borrower</Btn>
-        <input
-          className="w-28 bg-slate-800 rounded px-2 py-1 text-sm"
-          value={loanAmt}
-          onChange={(e) => setLoanAmt(e.target.value)}
-        />
-        <Btn onClick={requestLoan}>Request loan</Btn>
-        <Btn onClick={approveLoan}>Approve loan</Btn>
-        <Btn onClick={makePayment}>Make payment</Btn>
-        <Btn className="bg-rose-700 hover:bg-rose-600" onClick={defaultLoan}>
-          Default loan
-        </Btn>
-        <Btn className="bg-slate-700 hover:bg-slate-600" onClick={addGuarantor}>
-          Add guarantor
-        </Btn>
-      </div>
-      <div className="grid md:grid-cols-2 gap-4 text-sm">
-        <div>
-          <div className="text-xs text-slate-500 mb-2">Depositors</div>
-          {depositors.map((d) => (
-            <div key={d.name} className="flex justify-between text-slate-300">
-              <span>{d.name}</span>
-              <span className="font-mono">${d.amount.toLocaleString()}</span>
-            </div>
-          ))}
-        </div>
-        <div>
-          <div className="text-xs text-slate-500 mb-2">Loans</div>
-          {loans.map((l) => (
-            <div key={l.id} className="text-slate-300">
-              {l.borrower} · ${l.outstanding.toLocaleString()} · {l.status}
-              {l.guarantor ? ` · guarantor: ${l.guarantor}` : ''}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="font-mono text-xs text-slate-400 space-y-1">
-        {log.map((l, i) => (
-          <div key={i}>{l}</div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function LessonBody({ n }: { n: number }) {
-  switch (n) {
+  switch (lesson) {
     case 0:
       return (
-        <div className="space-y-5">
-          <p className="text-slate-300">
+        <div className="space-y-4 text-slate-300">
+          <p>
             Someone supplies the money. Someone needs the money. Something manages the agreement
-            between them.
+            between them. Click any node in the network to inspect it.
           </p>
-          <ThreePartyDiagram />
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="text-left text-slate-500">
@@ -348,17 +113,23 @@ function LessonBody({ n }: { n: number }) {
               </tbody>
             </table>
           </div>
-          <p className="text-slate-300 rounded-lg border border-amber-700/40 bg-amber-950/20 p-3">
+          <p className="rounded-lg border border-amber-700/40 bg-amber-950/20 p-3 text-sm">
             You are not buying the vault. You are providing capital to the vault.
           </p>
-          <details className="text-sm text-slate-400">
-            <summary className="cursor-pointer text-slate-200">Advanced lending roles →</summary>
+          <details
+            className="text-sm text-slate-400"
+            open={sim.state.showAdvancedRoles}
+            onToggle={(e) => sim.toggleAdvanced((e.target as HTMLDetailsElement).open)}
+          >
+            <summary className="cursor-pointer text-slate-200">Advanced Lending Roles →</summary>
             <ul className="mt-2 list-disc pl-5 space-y-1">
               <li>Guarantor — optional; stands behind the borrower if they do not perform</li>
-              <li>Broker / loan originator — later; finds and packages borrowers, earns a point</li>
-              <li>Vault creator / administrator — configures rules; does not own depositor funds</li>
-              <li>Collateral custodian, underwriter, servicer — operational extras</li>
+              <li>Broker / loan originator — finds and packages borrowers, earns a point</li>
+              <li>Underwriter / servicer / collateral custodian — operational extras</li>
             </ul>
+            <p className="mt-2 text-xs text-indigo-300">
+              Expanding this list animates optional roles into the network.
+            </p>
           </details>
         </div>
       )
@@ -368,7 +139,7 @@ function LessonBody({ n }: { n: number }) {
           <p>
             A vault is a pool of capital governed by predefined rules. Depositors own their{' '}
             <strong className="text-slate-100">position</strong> in that pool — not the vault
-            itself.
+            itself. Watch the chamber fill as capital concentrates in the center.
           </p>
           <Card title="JRPU Lending Vault #001">
             <ul className="text-sm space-y-2">
@@ -389,7 +160,12 @@ function LessonBody({ n }: { n: number }) {
               </li>
             </ul>
           </Card>
-          <p className="text-sm text-slate-400">Click any term to see what it means.</p>
+          <div className="flex flex-wrap gap-2">
+            <Btn onClick={() => sim.deposit(10000, !reduceMotion)}>Animate sample deposit</Btn>
+            <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => sim.selectEntity('vault')}>
+              Inspect vault
+            </Btn>
+          </div>
         </div>
       )
     case 2:
@@ -400,50 +176,79 @@ function LessonBody({ n }: { n: number }) {
             <div>Alice deposits &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$10,000</div>
             <div>James deposits &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;$5,000</div>
             <div>Company ABC deposits $25,000</div>
-            <div className="pt-2 text-indigo-300">Total vault capital &nbsp;$40,000</div>
+            <div className="pt-2 text-indigo-300">
+              Total vault capital &nbsp;${sim.state.vault.totalCapital.toLocaleString()}
+            </div>
           </div>
-          <Party title="Alice · rAlice…" subtitle="Balance $25,000 · Deposits $10,000" tone="depositor" />
-          <p>
+          <div className="flex flex-wrap gap-2">
+            <Btn onClick={() => sim.deposit(10000, !reduceMotion)}>Deposit $10,000</Btn>
+            <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => sim.selectEntity('depositor')}>
+              Open depositor panel
+            </Btn>
+          </div>
+          <p className="text-sm">
             Alice still owns her economic claim. She does not become the vault creator or
             administrator by depositing.
           </p>
         </div>
       )
-    case 3:
+    case 3: {
+      const phases = ['REQUEST', 'UNDERWRITE', 'APPROVE', 'SIGN', 'FUND']
       return (
         <div className="space-y-4 text-slate-300">
           <p>The borrower is not the broker and not the protocol.</p>
           <Card title="Loan request">
             <div className="text-sm space-y-1">
-              <div>Borrower: Bob’s Construction LLC</div>
+              <div>Borrower: {sim.primaryBorrower.name}</div>
               <div>Requested: $8,000</div>
               <div>Purpose: Equipment</div>
               <div>Term: 12 months</div>
             </div>
           </Card>
-          <Card title="Underwriting (educational)">
-            <p className="text-xs text-slate-500 mb-2">What the protocol may consider</p>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <span>Identity</span>
-              <span>Income / revenue</span>
-              <span>Existing obligations</span>
-              <span>Collateral</span>
-              <span>Guarantor</span>
-              <span>Payment history</span>
-              <span>Loan purpose</span>
-              <span>Requested amount</span>
-            </div>
-            <div className="mt-3 text-sm border-t border-slate-800 pt-3">
-              Approved $8,000 · 12 months · 10% APR · 1% origination · collateral required ·
-              guarantor none
-            </div>
-          </Card>
+          <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+            {phases.map((p, i) => (
+              <div key={p} className="flex items-center gap-2">
+                <span
+                  className={
+                    'rounded px-2 py-1 border ' +
+                    (i <= sim.state.underwritingPhase
+                      ? 'border-amber-400/50 bg-amber-950/40 text-amber-100'
+                      : 'border-slate-700 text-slate-500')
+                  }
+                >
+                  {p}
+                </span>
+                {i < phases.length - 1 && <span className="text-slate-600">↓</span>}
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Btn onClick={() => sim.requestLoan(8000)}>Request Loan</Btn>
+            <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => sim.advanceUnderwrite()}>
+              Advance underwriting
+            </Btn>
+            <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => sim.approveLoan()}>
+              Approve
+            </Btn>
+            <Btn onClick={() => sim.fundLoan(!reduceMotion)}>Fund $8,000</Btn>
+          </div>
+          {sim.state.statusBanner === 'LOAN FUNDED' && (
+            <Card title="Loan funded">
+              <div className="text-sm font-mono space-y-1">
+                <div>Principal: $8,000</div>
+                <div>APR: 10%</div>
+                <div>Term: 12 months</div>
+                <div>Payments: Monthly</div>
+              </div>
+            </Card>
+          )}
         </div>
       )
+    }
     case 4:
       return (
         <div className="space-y-4 text-slate-300">
-          <p>This is what everyone is actually agreeing to.</p>
+          <p>This is what everyone is actually agreeing to. Select a term to highlight its effect on the pipeline.</p>
           <div className="grid md:grid-cols-2 gap-3 text-sm">
             {(
               [
@@ -455,12 +260,23 @@ function LessonBody({ n }: { n: number }) {
                 'Collateral',
                 'Default',
                 'Origination fee',
-                'Points'
+                'Points',
+                'Interest'
               ] as const
             ).map((name) => (
-              <div key={name} className="rounded-lg border border-slate-800 p-3">
-                <Term name={name} />
-              </div>
+              <button
+                key={name}
+                type="button"
+                onClick={() => sim.selectTerm(name)}
+                className={
+                  'rounded-lg border p-3 text-left transition ' +
+                  (sim.state.selectedTerm === name
+                    ? 'border-indigo-400 bg-indigo-950/40'
+                    : 'border-slate-800 hover:border-slate-600')
+                }
+              >
+                <Term name={name} onSelect={(n) => sim.selectTerm(n)} />
+              </button>
             ))}
           </div>
           <Card title="Loan agreement">
@@ -468,13 +284,15 @@ function LessonBody({ n }: { n: number }) {
               <div>Principal: $8,000</div>
               <div>Interest: 10% APR</div>
               <div>Duration: 12 months · monthly</div>
+              <div>Origination fee: 1%</div>
               <div>Prepayment: allowed</div>
               <div>Collateral: equipment</div>
+              <div>Guarantor: none</div>
+              <div>Default terms: grace then first-loss</div>
             </div>
             <p className="text-sm mt-3">
-              <span className="text-amber-300">Borrower signs this agreement.</span> A{' '}
-              <strong className="text-slate-100">guarantor</strong> (sometimes called a co-signer)
-              signs only if one is used. Depositors do not sign each loan.
+              <span className="text-amber-300">Borrower signs this agreement.</span> Depositors do
+              not sign each loan.
             </p>
           </Card>
         </div>
@@ -482,8 +300,8 @@ function LessonBody({ n }: { n: number }) {
     case 5:
       return (
         <div className="space-y-4 text-slate-300">
-          <p>Follow the same dollars through the system.</p>
-          <MoneyFlow />
+          <p>Follow the same dollars through the system — deposit, lend, repay, distribute.</p>
+          <LifecyclePlayer reducedMotion={reduceMotion} />
           <ul className="text-sm space-y-1">
             <li>Who is depositing? The lender / liquidity provider.</li>
             <li>Who is borrowing? The borrower.</li>
@@ -493,46 +311,130 @@ function LessonBody({ n }: { n: number }) {
       )
     case 6:
       return (
-        <div className="space-y-3 text-slate-300 text-sm">
+        <div className="space-y-4 text-slate-300 text-sm">
           <p>Yield is not magic. Capital can be delayed or lost.</p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-              <strong className="text-slate-100">Borrower default</strong> — repayments stop; first-loss
-              cover and then depositor principal absorb the shortfall.
+              <strong className="text-slate-100">Borrower default</strong> — repayments stop;
+              first-loss cover and then depositor principal absorb the shortfall.
             </li>
             <li>
-              <strong className="text-slate-100">Liquidity risk</strong> — lent capital is not instantly
-              recallable. Withdrawals may wait.
+              <strong className="text-slate-100">Liquidity risk</strong> — lent capital is not
+              instantly recallable.
             </li>
             <li>
-              <strong className="text-slate-100">Collateral risk</strong> — pledged assets may not cover
-              the unpaid balance.
-            </li>
-            <li>
-              <strong className="text-slate-100">Protocol / ledger risk</strong> — rules live in XRPL
-              transactions plus an operator. This is not a fully trustless EVM vault.
+              <strong className="text-slate-100">Collateral risk</strong> — pledged assets may not
+              cover the unpaid balance.
             </li>
             <li>
               <strong className="text-slate-100">Concentration risk</strong> — one large borrower or
               depositor can dominate outcomes.
             </li>
           </ul>
+          <div className="flex flex-wrap gap-2">
+            <Btn className="bg-rose-700 hover:bg-rose-600" onClick={() => sim.simulateDefault()}>
+              Simulate Default
+            </Btn>
+            <Btn className="bg-rose-800 hover:bg-rose-700" onClick={() => sim.missPayment()}>
+              Miss Payment
+            </Btn>
+          </div>
+          {sim.state.defaultedConnection && (
+            <div className="rounded-lg border border-rose-500/40 bg-rose-950/30 p-3 space-y-1 font-mono text-xs">
+              <div>Expected Payment: $703.33</div>
+              <div className="text-rose-300">Received: $0</div>
+              <div className="text-slate-400 pt-1">
+                Vault liquidity and depositor returns are impaired until recovery or write-down.
+              </div>
+            </div>
+          )}
         </div>
       )
     default:
-      return (
-        <div className="space-y-4">
-          <p className="text-slate-300">
-            Classroom money only — nothing hits Devnet until you open the live lab.
-          </p>
-          <ClassroomSim />
-        </div>
-      )
+      return <Sandbox reduceMotion={reduceMotion} />
   }
 }
 
-export default function Academy({ onOpenLab }: { onOpenLab: () => void }) {
+function Sandbox({ reduceMotion }: { reduceMotion: boolean }) {
+  const sim = useSimulation()
+  const { vault, depositors, borrowers, loans, log } = sim.state
+  return (
+    <div className="space-y-4">
+      <p className="text-slate-300 text-sm">
+        Classroom money only — nothing hits Devnet until you open the live lab. Every action
+        updates the network visualization.
+      </p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Stat label="Vault capital" value={`$${Math.round(vault.totalCapital).toLocaleString()}`} />
+        <Stat label="Depositors" value={`${depositors.length}`} />
+        <Stat label="Outstanding loans" value={`$${Math.round(vault.outstandingLoans).toLocaleString()}`} />
+        <Stat label="Available liquidity" value={`$${Math.round(vault.availableLiquidity).toLocaleString()}`} />
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Btn onClick={() => sim.addDepositor()}>Add Depositor</Btn>
+        <Btn onClick={() => sim.deposit(5000, !reduceMotion)}>Deposit Capital</Btn>
+        <Btn onClick={() => sim.addBorrower()}>Create Borrower</Btn>
+        <Btn onClick={() => sim.requestLoan(4000)}>Request Loan</Btn>
+        <Btn onClick={() => sim.approveLoan()}>Approve Loan</Btn>
+        <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => sim.rejectLoan()}>
+          Reject Loan
+        </Btn>
+        <Btn onClick={() => sim.fundLoan(!reduceMotion)}>Fund Loan</Btn>
+        <Btn onClick={() => sim.makePayment(!reduceMotion)}>Make Payment</Btn>
+        <Btn className="bg-rose-800 hover:bg-rose-700" onClick={() => sim.missPayment()}>
+          Miss Payment
+        </Btn>
+        <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => sim.addGuarantor()}>
+          Add Guarantor
+        </Btn>
+        <Btn onClick={() => sim.payOff()}>Pay Off Loan</Btn>
+        <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => sim.withdraw(2000)}>
+          Withdraw Capital
+        </Btn>
+        <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => sim.reset()}>
+          Reset
+        </Btn>
+      </div>
+      <div className="grid md:grid-cols-2 gap-4 text-sm">
+        <div>
+          <div className="text-xs text-slate-500 mb-2">Depositors</div>
+          {depositors.map((d) => (
+            <div key={d.id} className="flex justify-between text-slate-300">
+              <span>{d.name}</span>
+              <span className="font-mono">${d.deposited.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+        <div>
+          <div className="text-xs text-slate-500 mb-2">Loans ({borrowers.length} borrowers)</div>
+          {loans.map((l) => (
+            <div key={l.id} className="text-slate-300">
+              {borrowers.find((b) => b.id === l.borrowerId)?.name} · ${l.remaining.toLocaleString()} ·{' '}
+              {l.status}
+              {l.guarantor ? ` · guarantor: ${l.guarantor}` : ''}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="font-mono text-xs text-slate-400 space-y-1">
+        {log.map((l, i) => (
+          <div key={i}>{l}</div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
   const [lesson, setLesson] = useState(0)
+  const [reduceMotion, setReduceMotion] = useState(false)
+  const sim = useSimulation()
+
+  useEffect(() => {
+    sim.setLessonPreset(lesson)
+    // intentionally only when lesson changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lesson])
 
   return (
     <div className="grid lg:grid-cols-[16rem_1fr] gap-6">
@@ -552,15 +454,41 @@ export default function Academy({ onOpenLab }: { onOpenLab: () => void }) {
             <div>{title}</div>
           </button>
         ))}
+        <label className="mt-4 flex items-center gap-2 px-2 text-xs text-slate-400 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={reduceMotion}
+            onChange={(e) => setReduceMotion(e.target.checked)}
+            className="rounded border-slate-600"
+          />
+          Reduce motion
+        </label>
       </aside>
-      <div className="space-y-5">
+
+      <div className="space-y-5 min-w-0">
         <div>
           <p className="text-xs uppercase tracking-wide text-indigo-300">How a loan works</p>
           <h1 className="text-2xl font-bold mt-1">
             Lesson {lesson + 1}: {LESSONS[lesson]}
           </h1>
         </div>
-        <LessonBody n={lesson} />
+
+        <LendingPipelineCanvas lesson={lesson} reduceMotionOverride={reduceMotion} />
+        <LifecycleTracker stage={sim.state.lifecycleStage} />
+
+        <div className="grid lg:grid-cols-[1fr_18rem] gap-4">
+          <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
+          <div className="space-y-3">
+            <EntityPanel />
+            {!sim.state.selectedEntity && (
+              <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-xs text-slate-500">
+                Click Protocol, Vault, Depositor, or Borrower in the visualization to inspect
+                responsibilities and balances.
+              </div>
+            )}
+          </div>
+        </div>
+
         <div className="flex flex-wrap gap-2 pt-2">
           <Btn
             className="bg-slate-700 hover:bg-slate-600"
@@ -577,5 +505,13 @@ export default function Academy({ onOpenLab }: { onOpenLab: () => void }) {
         </div>
       </div>
     </div>
+  )
+}
+
+export default function Academy({ onOpenLab }: { onOpenLab: () => void }) {
+  return (
+    <SimulationProvider>
+      <AcademyInner onOpenLab={onOpenLab} />
+    </SimulationProvider>
   )
 }

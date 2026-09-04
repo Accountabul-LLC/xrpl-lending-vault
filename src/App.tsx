@@ -37,7 +37,7 @@ export default function App() {
           </button>
         </div>
       </nav>
-      <main className="p-6 max-w-6xl mx-auto">
+      <main className="p-6 max-w-7xl mx-auto">
         {view === 'academy' ? <Academy onOpenLab={() => setView('lab')} /> : <DevnetLab />}
       </main>
     </div>
