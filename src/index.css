@@ -1,3 +1,23 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+.flow-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 9999px;
+  background: #818cf8;
+  animation: flow-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes flow-pulse {
+  0%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.4);
+    opacity: 1;
+  }
+}

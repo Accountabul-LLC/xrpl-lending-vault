@@ -1,6 +1,22 @@
 # JRPU Lending Protocol — Vault Architecture
 
-Status: DESIGNING (pre-implementation). No code exists yet.
+Status: BUILDING / VERIFYING on XRPL Devnet. Architecture docs remain the
+source of product rules; the dashboard in this repo is the live test harness.
+
+**Implemented and verified live on `wss://s.devnet.rippletest.net:51233`:**
+`VaultCreate` (Asset `{currency:"XRP"}` is required even for native vaults),
+`VaultDeposit`, `LoanBrokerSet` (must be the vault owner — `tecNO_PERMISSION`
+otherwise), `LoanSet` (broker + borrower cosign), `LoanPay`.
+
+**In this pass:** session persistence, `VaultWithdraw` verified, ledger-entry
+errors surfaced to the activity log, faucet-safe default amounts.
+`LoanBrokerCoverDeposit` is owner-only (XLS-66: submitter must equal
+`LoanBroker.Owner` — a distinct funder gets `tecNO_PERMISSION`).
+
+**Still unbuilt vs this design:** operator indexer, Payment Channel yield
+claims, multisig/`SignerListSet`, withdrawal queue, pause flags. Native
+XLS-65 `AssetsMaximum` now enforces the cap on-ledger, which supersedes
+the escrow-staging path in §3 for the Devnet test.
 
 **Target network for this build: XRPL Devnet.** This is a test deployment
 to validate the vault/lending mechanics end-to-end (deposits, cap handling,

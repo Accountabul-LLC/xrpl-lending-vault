@@ -108,7 +108,7 @@ export async function withdrawVault(holder: Wallet, vaultId: string, amountXrp: 
   return result
 }
 
-export async function fetchVault(vaultId: string): Promise<VaultInfo | null> {
+export async function fetchVault(vaultId: string): Promise<VaultInfo> {
   const client = await getClient()
   try {
     const res: any = await client.request({
@@ -129,11 +129,30 @@ export async function fetchVault(vaultId: string): Promise<VaultInfo | null> {
     }
   } catch (e) {
     console.error('fetchVault failed', e)
-    return null
+    throw e
   }
 }
 
 // --- Lending Protocol (XLS-66) ---
+
+async function submitSigned(wallet: Wallet, tx: any, label: string) {
+  const client = await getClient()
+  const prepared = await client.autofill(tx)
+  const signed = wallet.sign(prepared)
+  const result = await client.submitAndWait(signed.tx_blob)
+  const meta: any = result.result.meta
+  if (meta?.TransactionResult !== 'tesSUCCESS') {
+    throw new Error(`${label} failed: ${meta?.TransactionResult}`)
+  }
+  return { result, meta }
+}
+
+export const TF_LOAN_DEFAULT = 0x00010000
+export const TF_LOAN_IMPAIR = 0x00020000
+export const TF_LOAN_UNIMPAIR = 0x00040000
+export const TF_LOAN_FULL_PAYMENT = 0x00020000
+export const LSF_LOAN_DEFAULT = 0x00010000
+export const LSF_LOAN_IMPAIRED = 0x00020000
 
 export interface LoanBrokerInfo {
   loanBrokerId: string
@@ -141,6 +160,7 @@ export interface LoanBrokerInfo {
   account: string
   debtTotal: string
   coverAvailable: string
+  coverRateMinimum: number
 }
 
 export async function createLoanBroker(
@@ -169,22 +189,35 @@ export async function createLoanBroker(
   return { loanBrokerId: created?.CreatedNode?.LedgerIndex as string }
 }
 
-export async function depositCover(owner: Wallet, loanBrokerId: string, amountXrp: string) {
+export async function depositCover(funder: Wallet, loanBrokerId: string, amountXrp: string) {
   const client = await getClient()
   const tx: any = {
     TransactionType: 'LoanBrokerCoverDeposit',
-    Account: owner.address,
+    Account: funder.address,
     LoanBrokerID: loanBrokerId,
     Amount: xrpToDrops(amountXrp)
   }
   const prepared = await client.autofill(tx)
-  const signed = owner.sign(prepared)
+  const signed = funder.sign(prepared)
   const result = await client.submitAndWait(signed.tx_blob)
   const meta: any = result.result.meta
   if (meta?.TransactionResult !== 'tesSUCCESS') {
     throw new Error(`LoanBrokerCoverDeposit failed: ${meta?.TransactionResult}`)
   }
   return result
+}
+
+export async function withdrawCover(owner: Wallet, loanBrokerId: string, amountXrp: string) {
+  await submitSigned(
+    owner,
+    {
+      TransactionType: 'LoanBrokerCoverWithdraw',
+      Account: owner.address,
+      LoanBrokerID: loanBrokerId,
+      Amount: xrpToDrops(amountXrp)
+    },
+    'LoanBrokerCoverWithdraw'
+  )
 }
 
 export interface CreateLoanOpts {
@@ -240,7 +273,7 @@ export async function payLoan(payer: Wallet, loanId: string, amountXrp: string, 
     Account: payer.address,
     LoanID: loanId,
     Amount: xrpToDrops(amountXrp),
-    Flags: full ? 0x00020000 : 0
+    Flags: full ? TF_LOAN_FULL_PAYMENT : 0
   }
   const prepared = await client.autofill(tx)
   const signed = payer.sign(prepared)
@@ -252,6 +285,57 @@ export async function payLoan(payer: Wallet, loanId: string, amountXrp: string, 
   return result
 }
 
+export async function payLoanFull(payer: Wallet, loanId: string, amountXrp: string) {
+  return payLoan(payer, loanId, amountXrp, true)
+}
+
+export async function manageLoan(
+  owner: Wallet,
+  loanId: string,
+  flag: typeof TF_LOAN_DEFAULT | typeof TF_LOAN_IMPAIR | typeof TF_LOAN_UNIMPAIR
+) {
+  await submitSigned(
+    owner,
+    {
+      TransactionType: 'LoanManage',
+      Account: owner.address,
+      LoanID: loanId,
+      Flags: flag
+    },
+    'LoanManage'
+  )
+}
+
+export async function deleteLoan(signer: Wallet, loanId: string) {
+  await submitSigned(
+    signer,
+    {
+      TransactionType: 'LoanDelete',
+      Account: signer.address,
+      LoanID: loanId
+    },
+    'LoanDelete'
+  )
+}
+
+export async function setVault(
+  owner: Wallet,
+  vaultId: string,
+  opts: { assetsMaximumXrp?: string; data?: string }
+) {
+  await submitSigned(
+    owner,
+    {
+      TransactionType: 'VaultSet',
+      Account: owner.address,
+      VaultID: vaultId,
+      AssetsMaximum: opts.assetsMaximumXrp ? xrpToDrops(opts.assetsMaximumXrp) : undefined,
+      Data: opts.data ? convertStringToHex(opts.data) : undefined
+    },
+    'VaultSet'
+  )
+}
+
 export interface LoanInfo {
   loanId: string
   borrower: string
@@ -260,9 +344,12 @@ export interface LoanInfo {
   interestRate: number
   nextPaymentDueDate?: string
   paymentRemaining?: number
+  flags: number
+  defaulted: boolean
+  impaired: boolean
 }
 
-export async function fetchLoan(loanId: string): Promise<LoanInfo | null> {
+export async function fetchLoan(loanId: string): Promise<LoanInfo> {
   const client = await getClient()
   try {
     const res: any = await client.request({
@@ -271,6 +358,7 @@ export async function fetchLoan(loanId: string): Promise<LoanInfo | null> {
       ledger_index: 'validated'
     } as any)
     const node = res.result.node
+    const flags = node.Flags ?? 0
     return {
       loanId,
       borrower: node.Borrower,
@@ -278,15 +366,18 @@ export async function fetchLoan(loanId: string): Promise<LoanInfo | null> {
       totalValueOutstanding: dropsToXrp(node.TotalValueOutstanding ?? '0').toString(),
       interestRate: node.InterestRate,
       nextPaymentDueDate: node.NextPaymentDueDate,
-      paymentRemaining: node.PaymentRemaining
+      paymentRemaining: node.PaymentRemaining,
+      flags,
+      defaulted: (flags & LSF_LOAN_DEFAULT) !== 0,
+      impaired: (flags & LSF_LOAN_IMPAIRED) !== 0
     }
   } catch (e) {
     console.error('fetchLoan failed', e)
-    return null
+    throw e
   }
 }
 
-export async function fetchLoanBroker(loanBrokerId: string): Promise<LoanBrokerInfo | null> {
+export async function fetchLoanBroker(loanBrokerId: string): Promise<LoanBrokerInfo> {
   const client = await getClient()
   try {
     const res: any = await client.request({
@@ -300,10 +391,11 @@ export async function fetchLoanBroker(loanBrokerId: string): Promise<LoanBrokerI
       vaultId: node.VaultID,
       account: node.Account,
       debtTotal: dropsToXrp(node.DebtTotal ?? '0').toString(),
-      coverAvailable: dropsToXrp(node.CoverAvailable ?? '0').toString()
+      coverAvailable: dropsToXrp(node.CoverAvailable ?? '0').toString(),
+      coverRateMinimum: node.CoverRateMinimum ?? 0
     }
   } catch (e) {
     console.error('fetchLoanBroker failed', e)
-    return null
+    throw e
   }
 }
