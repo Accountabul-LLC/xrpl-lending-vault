@@ -155,6 +155,7 @@ export class LendingNetworkScene {
   private onResize: () => void
   private onPointer: (e: PointerEvent) => void
   private onVisibility: () => void
+  private resizeObserver: ResizeObserver | null = null
 
   constructor(root: HTMLElement, hooks: SceneHooks = {}) {
     this.root = root
@@ -189,6 +190,8 @@ export class LendingNetworkScene {
     root.appendChild(this.renderer.domElement)
     this.renderer.domElement.style.width = '100%'
     this.renderer.domElement.style.height = '100%'
+    this.renderer.domElement.style.maxWidth = '100%'
+    this.renderer.domElement.style.maxHeight = '100%'
     this.renderer.domElement.style.display = 'block'
     this.renderer.domElement.style.touchAction = 'manipulation'
 
@@ -255,6 +258,10 @@ export class LendingNetworkScene {
     window.addEventListener('resize', this.onResize)
     this.renderer.domElement.addEventListener('pointerdown', this.onPointer)
     document.addEventListener('visibilitychange', this.onVisibility)
+    if (typeof ResizeObserver !== 'undefined') {
+      this.resizeObserver = new ResizeObserver(() => this.resize())
+      this.resizeObserver.observe(root)
+    }
     this.resize()
     this.start()
   }
@@ -461,6 +468,7 @@ export class LendingNetworkScene {
     if (!w || !h) return
     this.camera.aspect = w / h
     this.camera.updateProjectionMatrix()
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75))
     this.renderer.setSize(w, h, false)
   }
 
@@ -556,6 +564,8 @@ export class LendingNetworkScene {
   dispose() {
     this.disposed = true
     cancelAnimationFrame(this.raf)
+    this.resizeObserver?.disconnect()
+    this.resizeObserver = null
     window.removeEventListener('resize', this.onResize)
     document.removeEventListener('visibilitychange', this.onVisibility)
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointer)

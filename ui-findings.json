@@ -1,0 +1,106 @@
+{
+  "product": "JRPU Lending Protocol",
+  "mode": "deep",
+  "date": "2026-09-04",
+  "zIndexScale": {
+    "base": 0,
+    "stickySidebar": 10,
+    "banner": 15,
+    "stickyHeader": 20,
+    "dropdown": 30,
+    "popover": 40
+  },
+  "findings": [
+    {
+      "id": "UI-001",
+      "title": "Lesson sidebar stacks as eight large buttons above the visualization",
+      "severity": "high",
+      "page": "academy",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-002",
+      "title": "Application header overflows on narrow viewports",
+      "severity": "high",
+      "page": "shell",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-003",
+      "title": "Academy workspace was not a constrained grid track",
+      "severity": "high",
+      "page": "academy",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-004",
+      "title": "WebGL canvas did not follow container size",
+      "severity": "high",
+      "page": "academy",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-005",
+      "title": "Fixed 520px canvas does not fit a laptop height at 100% zoom",
+      "severity": "high",
+      "page": "academy",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-006",
+      "title": "Visualization HTML labels clip at canvas edges",
+      "severity": "medium",
+      "page": "academy",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-007",
+      "title": "Capital lifecycle tracker forced a nested horizontal scrollbar",
+      "severity": "medium",
+      "page": "academy",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-008",
+      "title": "Glossary popovers overflowed cards and nested buttons",
+      "severity": "medium",
+      "page": "academy",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-009",
+      "title": "Devnet Lab forms overflow cards",
+      "severity": "high",
+      "page": "lab",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-010",
+      "title": "Long names and ledger values collide in flex rows",
+      "severity": "medium",
+      "page": "academy-lab",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-011",
+      "title": "Parties table still needs contained horizontal scroll on the smallest phones",
+      "severity": "informational",
+      "page": "academy",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-012",
+      "title": "Fallback 2D pipeline can still scroll inside the canvas frame",
+      "severity": "low",
+      "page": "academy",
+      "status": "resolved"
+    },
+    {
+      "id": "UI-013",
+      "title": "Main column left unused width on large desktops",
+      "severity": "low",
+      "page": "shell",
+      "status": "resolved"
+    }
+  ]
+}

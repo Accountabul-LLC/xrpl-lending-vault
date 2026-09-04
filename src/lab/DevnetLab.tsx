@@ -334,7 +334,7 @@ export default function DevnetLab() {
   const capacityUsed = assetsCap > 0 ? (assetsTotal / assetsCap) * 100 : 0
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <header>
         <h1 className="text-2xl font-bold">Live Devnet Lab</h1>
         <p className="text-slate-400 text-sm mt-1">
@@ -353,7 +353,7 @@ export default function DevnetLab() {
           {ROLES.map((role) => (
             <div key={role} className="space-y-2">
               <div className="text-xs text-slate-500">{ROLE_LABEL[role]}</div>
-              <div className="font-mono text-sm">{short(wallets[role]?.address)}</div>
+              <div className="font-mono text-sm break-all">{short(wallets[role]?.address)}</div>
               <Btn disabled={busy === `fund-${role}`} onClick={() => fundRole(role)}>
                 {wallets[role] ? 'Re-fund' : 'Fund wallet'}
               </Btn>
@@ -365,12 +365,12 @@ export default function DevnetLab() {
         </Btn>
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-6 min-w-0">
         <Card title="Vault">
           <div className="space-y-2">
             <label className="text-xs text-slate-500">Max vault capacity (XRP)</label>
             <input
-              className="w-full bg-slate-800 rounded px-2 py-1 text-sm"
+              className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
               value={assetsMaximum}
               onChange={(e) => setAssetsMaximum(e.target.value)}
             />
@@ -387,7 +387,7 @@ export default function DevnetLab() {
               </Btn>
 
               {vault && (
-                <div className="grid grid-cols-2 gap-3 pt-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                   <Stat label="Assets Total" value={`${vault.assetsTotal} XRP`} />
                   <Stat label="Available to lend" value={`${vault.assetsAvailable} XRP`} />
                   <Stat label="Max Capacity" value={`${vault.assetsMaximum} XRP`} />
@@ -397,10 +397,10 @@ export default function DevnetLab() {
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <div className="space-y-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <div className="space-y-1 min-w-0">
                   <input
-                    className="w-full bg-slate-800 rounded px-2 py-1 text-sm"
+                    className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
                     value={depositAmount}
                     onChange={(e) => setDepositAmount(e.target.value)}
                   />
@@ -412,9 +412,9 @@ export default function DevnetLab() {
                     Deposit
                   </Btn>
                 </div>
-                <div className="space-y-1">
+                <div className="space-y-1 min-w-0">
                   <input
-                    className="w-full bg-slate-800 rounded px-2 py-1 text-sm"
+                    className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
                     value={withdrawAmount}
                     onChange={(e) => setWithdrawAmount(e.target.value)}
                   />
@@ -455,9 +455,9 @@ export default function DevnetLab() {
                   <Stat label="Cover Available" value={`${loanBroker.coverAvailable} XRP`} />
                 </div>
               )}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
                 <input
-                  className="flex-1 bg-slate-800 rounded px-2 py-1 text-sm"
+                  className="min-w-0 w-full sm:flex-1 bg-slate-800 rounded px-2 py-1 text-sm"
                   value={coverAmount}
                   onChange={(e) => setCoverAmount(e.target.value)}
                 />
@@ -465,9 +465,9 @@ export default function DevnetLab() {
                   Deposit first-loss cover
                 </Btn>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
                 <input
-                  className="flex-1 bg-slate-800 rounded px-2 py-1 text-sm"
+                  className="min-w-0 w-full sm:flex-1 bg-slate-800 rounded px-2 py-1 text-sm"
                   value={coverWithdrawAmount}
                   onChange={(e) => setCoverWithdrawAmount(e.target.value)}
                 />
@@ -487,27 +487,27 @@ export default function DevnetLab() {
             Protocol and borrower both sign. Depositors do not sign each loan — they already
             agreed to vault terms when they deposited.
           </p>
-          <div className="grid grid-cols-3 gap-2">
-            <div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="min-w-0">
               <label className="text-xs text-slate-500">Principal (XRP)</label>
               <input
-                className="w-full bg-slate-800 rounded px-2 py-1 text-sm"
+                className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
                 value={principal}
                 onChange={(e) => setPrincipal(e.target.value)}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-xs text-slate-500">Borrower APR %</label>
               <input
-                className="w-full bg-slate-800 rounded px-2 py-1 text-sm"
+                className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
                 value={aprPercent}
                 onChange={(e) => setAprPercent(e.target.value)}
               />
             </div>
-            <div>
+            <div className="min-w-0">
               <label className="text-xs text-slate-500"># Payments</label>
               <input
-                className="w-full bg-slate-800 rounded px-2 py-1 text-sm"
+                className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
                 value={paymentTotal}
                 onChange={(e) => setPaymentTotal(e.target.value)}
               />
@@ -567,9 +567,9 @@ export default function DevnetLab() {
         </Card>
 
         <Card title="Repayment">
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2 min-w-0">
             <input
-              className="flex-1 bg-slate-800 rounded px-2 py-1 text-sm"
+              className="min-w-0 w-full sm:flex-1 bg-slate-800 rounded px-2 py-1 text-sm"
               value={paymentAmount}
               onChange={(e) => setPaymentAmount(e.target.value)}
             />
@@ -580,6 +580,7 @@ export default function DevnetLab() {
           <Btn
             disabled={!wallets.borrower || !loanId || !loan || busy === 'pay-full'}
             onClick={handlePayFull}
+            className="w-full sm:w-auto whitespace-normal break-words"
           >
             Pay off in full ({loan ? `${loan.totalValueOutstanding} XRP` : '—'})
           </Btn>
@@ -587,10 +588,10 @@ export default function DevnetLab() {
       </div>
 
       <Card title="Activity Log">
-        <div className="font-mono text-xs space-y-1 max-h-64 overflow-y-auto">
+        <div className="font-mono text-xs space-y-1 max-h-64 overflow-y-auto overflow-x-hidden">
           {log.length === 0 && <div className="text-slate-600">No activity yet.</div>}
           {log.map((l, i) => (
-            <div key={i} className="text-slate-400">
+            <div key={i} className="text-slate-400 break-words">
               {l}
             </div>
           ))}

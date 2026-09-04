@@ -8,8 +8,8 @@ export function EntityPanel() {
   if (!id) return null
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-950 p-4 space-y-3">
-      <div className="flex items-start justify-between gap-2">
+    <div className="rounded-xl border border-slate-700 bg-slate-950 p-4 space-y-3 min-w-0">
+      <div className="flex items-start justify-between gap-2 min-w-0">
         <div>
           <div className="text-[10px] uppercase tracking-wide text-slate-500">Entity</div>
           <h3 className="text-sm font-semibold text-slate-100">{titleFor(id)}</h3>
@@ -130,9 +130,16 @@ function ProtocolDetails() {
 
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
-    <div className="flex justify-between gap-3">
-      <span className="text-slate-500 text-xs">{label}</span>
-      <span className={mono ? 'font-mono text-xs text-slate-200' : 'text-xs text-slate-200'}>{value}</span>
+    <div className="flex justify-between gap-3 min-w-0">
+      <span className="text-slate-500 text-xs shrink-0">{label}</span>
+      <span
+        className={
+          (mono ? 'font-mono text-xs text-slate-200' : 'text-xs text-slate-200') +
+          ' text-right min-w-0 break-all'
+        }
+      >
+        {value}
+      </span>
     </div>
   )
 }

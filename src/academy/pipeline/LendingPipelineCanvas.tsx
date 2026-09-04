@@ -6,6 +6,18 @@ import { PipelineErrorBoundary } from './PipelineErrorBoundary'
 
 const SceneLoader = lazy(() => import('./SceneMount'))
 
+function clamp(n: number, min: number, max: number) {
+  if (max < min) return min
+  return Math.min(Math.max(n, min), max)
+}
+
+function clampPoint(x: number, y: number, w: number, h: number, padX: number, padY: number) {
+  return {
+    x: clamp(x, padX, Math.max(padX, w - padX)),
+    y: clamp(y, padY, Math.max(padY, h - padY))
+  }
+}
+
 function usePrefersReducedMotion() {
   const [reduced, setReduced] = useState(() =>
     typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -32,6 +44,19 @@ export function LendingPipelineCanvas({
   const [positions, setPositions] = useState<Partial<Record<EntityId, { x: number; y: number }>>>({})
   const [webglOk, setWebglOk] = useState(true)
   const projectRef = useRef<((id: EntityId) => { x: number; y: number } | null) | null>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const [frameSize, setFrameSize] = useState({ w: 0, h: 0 })
+
+  useEffect(() => {
+    const el = frameRef.current
+    if (!el) return
+    const update = () => setFrameSize({ w: el.clientWidth, h: el.clientHeight })
+    update()
+    if (typeof ResizeObserver === 'undefined') return
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [])
 
   useEffect(() => {
     let raf = 0
@@ -63,9 +88,29 @@ export function LendingPipelineCanvas({
 
   const { vault } = sim.state
   const showFallback = !webglOk
+  const { w: fw, h: fh } = frameSize
+  const protocolPos =
+    positions.protocol && fw && fh
+      ? clampPoint(positions.protocol.x, positions.protocol.y - 48, fw, fh, 72, 22)
+      : null
+  const depositorPos =
+    positions.depositor && fw && fh
+      ? clampPoint(positions.depositor.x, positions.depositor.y + 36, fw, fh, 64, 28)
+      : null
+  const borrowerPos =
+    positions.borrower && fw && fh
+      ? clampPoint(positions.borrower.x, positions.borrower.y + 36, fw, fh, 64, 28)
+      : null
+  const vaultPos =
+    positions.vault && fw && fh
+      ? clampPoint(positions.vault.x, positions.vault.y - 70, fw, fh, 96, 48)
+      : null
 
   return (
-    <div className="relative w-full h-[420px] md:h-[520px] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden">
+    <div
+      ref={frameRef}
+      className="relative w-full min-h-[220px] h-[min(48vh,420px)] sm:h-[min(52vh,480px)] lg:h-[min(56vh,520px)] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
+    >
       {showFallback ? (
         <FallbackPipeline lesson={lesson} />
       ) : (
@@ -95,31 +140,31 @@ export function LendingPipelineCanvas({
         </PipelineErrorBoundary>
       )}
 
-      {!showFallback && positions.protocol && (
-        <Label x={positions.protocol.x} y={positions.protocol.y - 48} tone="protocol">
+      {!showFallback && protocolPos && (
+        <Label x={protocolPos.x} y={protocolPos.y} tone="protocol">
           Protocol / Facilitator
         </Label>
       )}
-      {!showFallback && positions.depositor && (
-        <Label x={positions.depositor.x} y={positions.depositor.y + 36} tone="depositor">
+      {!showFallback && depositorPos && (
+        <Label x={depositorPos.x} y={depositorPos.y} tone="depositor">
           Depositor
           <span className="block text-[10px] font-mono text-emerald-200/80">
             ${sim.primaryDepositor.deposited.toLocaleString()} in vault
           </span>
         </Label>
       )}
-      {!showFallback && positions.borrower && (
-        <Label x={positions.borrower.x} y={positions.borrower.y + 36} tone="borrower">
+      {!showFallback && borrowerPos && (
+        <Label x={borrowerPos.x} y={borrowerPos.y} tone="borrower">
           Borrower
           <span className="block text-[10px] font-mono text-amber-200/80">
             ${sim.primaryBorrower.remainingBalance.toLocaleString()} outstanding
           </span>
         </Label>
       )}
-      {!showFallback && positions.vault && (
+      {!showFallback && vaultPos && (
         <div
-          className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 text-center"
-          style={{ left: positions.vault.x, top: positions.vault.y - 70 }}
+          className="absolute pointer-events-none -translate-x-1/2 -translate-y-1/2 text-center max-w-[min(16rem,calc(100%-16px))]"
+          style={{ left: vaultPos.x, top: vaultPos.y }}
         >
           <div className="rounded-lg border border-sky-500/40 bg-slate-950/85 px-3 py-2 backdrop-blur-sm shadow-lg">
             <div className="text-xs font-semibold text-sky-200">JRPU Lending Vault</div>
@@ -144,7 +189,7 @@ export function LendingPipelineCanvas({
       )}
 
       {sim.state.statusBanner && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 rounded-full border border-indigo-400/40 bg-indigo-950/80 px-4 py-1.5 text-xs font-semibold tracking-wide text-indigo-100">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[var(--z-banner)] max-w-[calc(100%-1.5rem)] truncate rounded-full border border-indigo-400/40 bg-indigo-950/80 px-4 py-1.5 text-xs font-semibold tracking-wide text-indigo-100">
           {sim.state.statusBanner}
         </div>
       )}
@@ -184,7 +229,7 @@ function Label({
         : 'border-amber-500/40 text-amber-100'
   return (
     <div
-      className={`absolute pointer-events-none -translate-x-1/2 rounded-md border bg-slate-950/80 px-2 py-1 text-[11px] font-medium backdrop-blur-sm ${toneCls}`}
+      className={`absolute pointer-events-none -translate-x-1/2 rounded-md border bg-slate-950/80 px-2 py-1 text-[11px] font-medium backdrop-blur-sm max-w-[min(12rem,calc(100%-16px))] text-center ${toneCls}`}
       style={{ left: x, top: y }}
     >
       {children}

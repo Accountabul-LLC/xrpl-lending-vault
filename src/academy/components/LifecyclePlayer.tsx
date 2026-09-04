@@ -61,7 +61,7 @@ export function LifecyclePlayer({ reducedMotion }: { reducedMotion: boolean }) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-3">
+    <div className="rounded-xl border border-slate-800 bg-slate-950/70 p-4 space-y-3 min-w-0">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-xs uppercase tracking-wide text-indigo-300">Following the money</div>

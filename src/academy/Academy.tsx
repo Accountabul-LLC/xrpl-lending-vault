@@ -50,19 +50,23 @@ function Term({
 }) {
   const [open, setOpen] = useState(false)
   return (
-    <span className="relative inline-block">
+    <span className="relative inline-block max-w-full align-baseline">
       <button
         type="button"
+        aria-expanded={open}
         onClick={() => {
           setOpen((v) => !v)
           onSelect?.(name)
         }}
-        className="text-indigo-300 underline decoration-dotted underline-offset-2 hover:text-indigo-200"
+        className="text-indigo-300 underline decoration-dotted underline-offset-2 hover:text-indigo-200 text-left"
       >
         {name}
       </button>
       {open && (
-        <span className="absolute z-10 left-0 top-full mt-1 w-64 rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs text-slate-300 shadow-xl">
+        <span
+          role="tooltip"
+          className="absolute z-[var(--z-popover)] left-0 top-full mt-1 w-64 max-w-[min(16rem,calc(100vw-2rem))] rounded-lg border border-slate-700 bg-slate-900 p-3 text-xs text-slate-300 shadow-xl"
+        >
           {GLOSSARY[name]}
         </span>
       )}
@@ -81,8 +85,8 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
             Someone supplies the money. Someone needs the money. Something manages the agreement
             between them. Click any node in the network to inspect it.
           </p>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="overflow-x-auto max-w-full">
+            <table className="w-full min-w-[28rem] text-sm">
               <thead className="text-left text-slate-500">
                 <tr>
                   <th className="py-2">Role</th>
@@ -205,7 +209,7 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
               <div>Term: 12 months</div>
             </div>
           </Card>
-          <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-2 text-xs font-mono">
             {phases.map((p, i) => (
               <div key={p} className="flex items-center gap-2">
                 <span
@@ -218,7 +222,11 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
                 >
                   {p}
                 </span>
-                {i < phases.length - 1 && <span className="text-slate-600">↓</span>}
+                {i < phases.length - 1 && (
+                  <span className="text-slate-600" aria-hidden>
+                    →
+                  </span>
+                )}
               </div>
             ))}
           </div>
@@ -269,13 +277,18 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
                 type="button"
                 onClick={() => sim.selectTerm(name)}
                 className={
-                  'rounded-lg border p-3 text-left transition ' +
+                  'rounded-lg border p-3 text-left transition min-w-0 ' +
                   (sim.state.selectedTerm === name
                     ? 'border-indigo-400 bg-indigo-950/40'
                     : 'border-slate-800 hover:border-slate-600')
                 }
               >
-                <Term name={name} onSelect={(n) => sim.selectTerm(n)} />
+                <span className="text-indigo-300 underline decoration-dotted underline-offset-2">
+                  {name}
+                </span>
+                {sim.state.selectedTerm === name && (
+                  <p className="mt-2 text-xs text-slate-400 leading-relaxed">{GLOSSARY[name]}</p>
+                )}
               </button>
             ))}
           </div>
@@ -395,20 +408,20 @@ function Sandbox({ reduceMotion }: { reduceMotion: boolean }) {
           Reset
         </Btn>
       </div>
-      <div className="grid md:grid-cols-2 gap-4 text-sm">
-        <div>
+      <div className="grid md:grid-cols-2 gap-4 text-sm min-w-0">
+        <div className="min-w-0">
           <div className="text-xs text-slate-500 mb-2">Depositors</div>
           {depositors.map((d) => (
-            <div key={d.id} className="flex justify-between text-slate-300">
-              <span>{d.name}</span>
-              <span className="font-mono">${d.deposited.toLocaleString()}</span>
+            <div key={d.id} className="flex justify-between gap-3 min-w-0 text-slate-300">
+              <span className="truncate">{d.name}</span>
+              <span className="font-mono shrink-0">${d.deposited.toLocaleString()}</span>
             </div>
           ))}
         </div>
-        <div>
+        <div className="min-w-0">
           <div className="text-xs text-slate-500 mb-2">Loans ({borrowers.length} borrowers)</div>
           {loans.map((l) => (
-            <div key={l.id} className="text-slate-300">
+            <div key={l.id} className="text-slate-300 break-words">
               {borrowers.find((b) => b.id === l.borrowerId)?.name} · ${l.remaining.toLocaleString()} ·{' '}
               {l.status}
               {l.guarantor ? ` · guarantor: ${l.guarantor}` : ''}
@@ -416,9 +429,11 @@ function Sandbox({ reduceMotion }: { reduceMotion: boolean }) {
           ))}
         </div>
       </div>
-      <div className="font-mono text-xs text-slate-400 space-y-1">
+      <div className="font-mono text-xs text-slate-400 space-y-1 max-h-48 overflow-y-auto">
         {log.map((l, i) => (
-          <div key={i}>{l}</div>
+          <div key={i} className="break-words">
+            {l}
+          </div>
         ))}
       </div>
     </div>
@@ -444,24 +459,46 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
   }, [lesson])
 
   return (
-    <div className="grid lg:grid-cols-[16rem_1fr] gap-6">
-      <aside className="space-y-2 relative z-20">
-        <div className="text-xs uppercase tracking-wide text-slate-500 px-2">JRPU Lending Academy</div>
-        {LESSONS.map((title, i) => (
-          <button
-            key={title}
-            type="button"
-            onClick={() => setLesson(i)}
-            className={
-              'w-full text-left rounded-lg px-3 py-2 text-sm transition ' +
-              (i === lesson ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900')
-            }
-          >
-            <span className="text-xs opacity-70">Lesson {i + 1}</span>
-            <div>{title}</div>
-          </button>
-        ))}
-        <label className="mt-4 flex items-center gap-2 px-2 text-xs text-slate-400 cursor-pointer">
+    <div className="grid gap-5 lg:grid-cols-[minmax(13rem,15rem)_minmax(0,1fr)] lg:gap-6">
+      <aside className="min-w-0 lg:sticky lg:top-20 lg:self-start lg:z-[var(--z-sticky-sidebar)]">
+        <div className="text-xs uppercase tracking-wide text-slate-500 px-1 lg:px-2">
+          JRPU Lending Academy
+        </div>
+        <div className="lg:hidden mt-2 flex flex-wrap gap-1.5">
+          {LESSONS.map((title, i) => (
+            <button
+              key={title}
+              type="button"
+              title={`Lesson ${i + 1}: ${title}`}
+              aria-current={i === lesson ? 'page' : undefined}
+              onClick={() => setLesson(i)}
+              className={
+                'h-9 min-w-9 px-2.5 rounded-lg text-sm transition ' +
+                (i === lesson ? 'bg-indigo-600 text-white' : 'bg-slate-900 text-slate-400 hover:bg-slate-800')
+              }
+            >
+              {i + 1}
+            </button>
+          ))}
+        </div>
+        <div className="hidden lg:block space-y-2 mt-2">
+          {LESSONS.map((title, i) => (
+            <button
+              key={title}
+              type="button"
+              aria-current={i === lesson ? 'page' : undefined}
+              onClick={() => setLesson(i)}
+              className={
+                'w-full text-left rounded-lg px-3 py-2 text-sm transition ' +
+                (i === lesson ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:bg-slate-900')
+              }
+            >
+              <span className="text-xs opacity-70">Lesson {i + 1}</span>
+              <div>{title}</div>
+            </button>
+          ))}
+        </div>
+        <label className="mt-3 flex items-center gap-2 px-1 lg:px-2 text-xs text-slate-400 cursor-pointer">
           <input
             type="checkbox"
             checked={reduceMotion}
@@ -473,9 +510,9 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
       </aside>
 
       <div className="space-y-5 min-w-0">
-        <div>
+        <div className="min-w-0">
           <p className="text-xs uppercase tracking-wide text-indigo-300">How a loan works</p>
-          <h1 className="text-2xl font-bold mt-1">
+          <h1 className="text-xl sm:text-2xl font-bold mt-1 break-words">
             Lesson {lesson + 1}: {LESSONS[lesson]}
           </h1>
         </div>
@@ -483,9 +520,11 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
         <LendingPipelineCanvas lesson={lesson} reduceMotionOverride={reduceMotion} />
         <LifecycleTracker stage={sim.state.lifecycleStage} />
 
-        <div className="grid lg:grid-cols-[1fr_18rem] gap-4">
-          <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
-          <div className="space-y-3">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,18rem)]">
+          <div className="min-w-0">
+            <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
+          </div>
+          <div className="space-y-3 min-w-0">
             <EntityPanel />
             {!sim.state.selectedEntity && (
               <div className="rounded-xl border border-slate-800 bg-slate-950/50 p-3 text-xs text-slate-500">
