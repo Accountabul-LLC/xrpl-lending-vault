@@ -7,22 +7,31 @@ import {
   type ReactNode
 } from 'react'
 import {
+  lessonStartStep,
+  lessonStepRange,
+  snapshotAfterStep,
+  STORY,
+  stepHasMotion
+} from '../experience/story'
+import {
   createInitialState,
   DEMO_DEPOSIT,
   DEMO_INTEREST_SHARE,
   DEMO_LOAN,
   DEMO_PAYMENT,
   DEMO_PRINCIPAL_SHARE,
-  DEMO_YIELD
+  DEMO_YIELD,
+  stateFromSnapshotStep
 } from './defaults'
 import type {
   AnimationRequest,
+  DistributionPolicy,
   EntityId,
   LifecycleStage,
   SimulationState
 } from './types'
+import { stageForStep } from './types'
 
-/** Callbacks live outside React state so Strict Mode remounts cannot lose or double-store them. */
 const animationCallbacks = new Map<string, () => void>()
 
 export function takeAnimationCallback(id: string) {
@@ -33,20 +42,25 @@ export function takeAnimationCallback(id: string) {
 
 type Action =
   | { type: 'RESET' }
+  | { type: 'HYDRATE'; state: SimulationState }
   | { type: 'SET_LESSON_PRESET'; lesson: number }
   | { type: 'SELECT_ENTITY'; entity: EntityId | null }
   | { type: 'SELECT_TERM'; term: string | null }
   | { type: 'TOGGLE_ADVANCED'; show?: boolean }
+  | { type: 'SET_ADVANCED_REVEAL'; level: number }
   | { type: 'SET_STAGE'; stage: LifecycleStage }
+  | { type: 'SET_STEP'; step: number }
   | { type: 'SET_BANNER'; banner: string | null }
+  | { type: 'SET_DISTRIBUTION'; policy: DistributionPolicy }
   | { type: 'NOTE'; msg: string }
   | { type: 'QUEUE_ANIM'; anim: AnimationRequest }
   | { type: 'START_ANIM'; id: string }
   | { type: 'CLEAR_ANIM'; id: string }
+  | { type: 'CONFIGURE_VAULT' }
   | { type: 'APPLY_DEPOSIT'; depositorId: string; amount: number }
   | { type: 'APPLY_LOAN_FUND'; loanId: string }
   | { type: 'APPLY_PAYMENT'; loanId: string; principal: number; interest: number }
-  | { type: 'APPLY_YIELD'; depositorId: string; amount: number }
+  | { type: 'APPLY_YIELD'; depositorId: string; amount: number; asCash: boolean }
   | { type: 'REQUEST_LOAN'; amount: number; borrowerId?: string }
   | { type: 'ADVANCE_UNDERWRITE' }
   | { type: 'APPROVE_LOAN' }
@@ -58,55 +72,70 @@ type Action =
   | { type: 'MISS_PAYMENT' }
   | { type: 'WITHDRAW'; amount: number }
   | { type: 'PAY_OFF' }
-  | { type: 'SET_RISK_MODE'; on: boolean }
+  | { type: 'ACCEPT_AGREEMENT' }
 
 function note(state: SimulationState, msg: string): SimulationState {
   return { ...state, log: [msg, ...state.log].slice(0, 16) }
 }
 
-function recalcVault(state: SimulationState): SimulationState {
-  const totalCapital = state.depositors.reduce((s, d) => s + d.deposited, 0)
-  const outstandingLoans = state.loans
-    .filter((l) => l.status === 'active' || l.status === 'funded')
-    .reduce((s, l) => s + l.remaining, 0)
-  const interestEarned = state.depositors.reduce((s, d) => s + d.earnedYield, 0)
+function withStep(state: SimulationState, step: number): SimulationState {
+  const next = Math.max(1, Math.min(10, step))
   return {
     ...state,
-    vault: {
-      ...state.vault,
-      totalCapital,
-      outstandingLoans,
-      availableLiquidity: Math.max(0, totalCapital - outstandingLoans),
-      interestEarned
-    }
+    currentStep: next,
+    lifecycleStage: stageForStep(next)
   }
 }
 
 function reducer(state: SimulationState, action: Action): SimulationState {
   switch (action.type) {
     case 'RESET':
-      return createInitialState()
+      return createInitialState(0)
+    case 'HYDRATE':
+      return action.state
     case 'SET_LESSON_PRESET': {
-      const next = { ...state, riskMode: action.lesson === 6, defaultedConnection: false }
-      if (action.lesson === 0) return { ...next, lifecycleStage: 'deposit', selectedEntity: null }
-      if (action.lesson === 1) return { ...next, selectedEntity: 'vault', lifecycleStage: 'deposit' }
-      if (action.lesson === 2) return { ...next, selectedEntity: 'depositor', lifecycleStage: 'deposit' }
-      if (action.lesson === 3) return { ...next, selectedEntity: 'borrower', lifecycleStage: 'request', underwritingPhase: 0 }
-      if (action.lesson === 4) return { ...next, selectedEntity: null, selectedTerm: null, lifecycleStage: 'approve' }
-      if (action.lesson === 5) return { ...next, lifecycleStage: 'deposit', statusBanner: null }
-      if (action.lesson === 6) return { ...next, lifecycleStage: 'repay', selectedEntity: 'borrower' }
-      return { ...next, lifecycleStage: 'deposit', selectedEntity: null }
+      const start = lessonStartStep(action.lesson)
+      const before = Math.max(0, start - 1)
+      const next = createInitialState(before)
+      next.currentStep = start
+      next.lifecycleStage = stageForStep(start)
+      next.riskMode = action.lesson === 6
+      next.selectedEntity =
+        action.lesson === 1 ? 'vault' : action.lesson === 2 ? 'depositor' : action.lesson === 3 ? 'borrower' : null
+      next.statusBanner = null
+      next.defaultedConnection = false
+      next.missedPayment = false
+      next.log = [
+        action.lesson === 7
+          ? 'Sandbox: configure the vault, then deposit, lend, and repay.'
+          : `Lesson ${action.lesson + 1} — start at Step ${start}.`
+      ]
+      return next
     }
     case 'SELECT_ENTITY':
       return { ...state, selectedEntity: action.entity }
     case 'SELECT_TERM':
       return { ...state, selectedTerm: action.term }
-    case 'TOGGLE_ADVANCED':
-      return { ...state, showAdvancedRoles: action.show ?? !state.showAdvancedRoles }
+    case 'TOGGLE_ADVANCED': {
+      const show = action.show ?? !state.showAdvancedRoles
+      return {
+        ...state,
+        showAdvancedRoles: show,
+        advancedReveal: show ? Math.max(state.advancedReveal, 6) : 0
+      }
+    }
+    case 'SET_ADVANCED_REVEAL': {
+      const level = Math.max(0, Math.min(6, action.level))
+      return { ...state, advancedReveal: level, showAdvancedRoles: level > 0 }
+    }
     case 'SET_STAGE':
       return { ...state, lifecycleStage: action.stage }
+    case 'SET_STEP':
+      return withStep(state, action.step)
     case 'SET_BANNER':
       return { ...state, statusBanner: action.banner }
+    case 'SET_DISTRIBUTION':
+      return { ...state, distributionPolicy: action.policy }
     case 'NOTE':
       return note(state, action.msg)
     case 'QUEUE_ANIM':
@@ -123,21 +152,52 @@ function reducer(state: SimulationState, action: Action): SimulationState {
         ...state,
         pendingAnimations: state.pendingAnimations.filter((a) => a.id !== action.id)
       }
+    case 'CONFIGURE_VAULT':
+      return note(
+        withStep(
+          {
+            ...state,
+            rulesDefined: true,
+            vault: { ...state.vault, configured: true },
+            statusBanner: 'VAULT CONFIGURED'
+          },
+          2
+        ),
+        'Administrator applied vault limits, XRP as the permitted asset, and lending rules.'
+      )
+    case 'ACCEPT_AGREEMENT':
+      return note(
+        withStep({ ...state, agreementAccepted: true, statusBanner: 'AGREEMENT ACCEPTED' }, 8),
+        'Borrower accepted principal, APR, term, and monthly repayment.'
+      )
     case 'APPLY_DEPOSIT': {
       const depositors = state.depositors.map((d) =>
         d.id === action.depositorId
           ? {
               ...d,
               balance: Math.max(0, d.balance - action.amount),
-              deposited: d.deposited + action.amount
+              deposited: d.deposited + action.amount,
+              vaultPosition: d.vaultPosition + action.amount
             }
           : d
       )
-      return recalcVault(
-        note(
-          { ...state, depositors, lifecycleStage: 'deposit', statusBanner: `DEPOSITED $${action.amount.toLocaleString()}` },
-          `${state.depositors.find((d) => d.id === action.depositorId)?.name ?? 'Depositor'} deposited $${action.amount.toLocaleString()}.`
-        )
+      const total = depositors.reduce((s, d) => s + d.deposited, 0)
+      return note(
+        withStep(
+          {
+            ...state,
+            depositors,
+            statusBanner: `DEPOSITED $${action.amount.toLocaleString()}`,
+            vault: {
+              ...state.vault,
+              configured: true,
+              totalCapital: total,
+              availableLiquidity: Math.max(0, total - state.vault.outstandingLoans)
+            }
+          },
+          3
+        ),
+        `${state.depositors.find((d) => d.id === action.depositorId)?.name ?? 'Depositor'} deposited $${action.amount.toLocaleString()} into the vault.`
       )
     }
     case 'APPLY_LOAN_FUND': {
@@ -153,26 +213,37 @@ function reducer(state: SimulationState, action: Action): SimulationState {
               status: 'funded' as const,
               loanPrincipal: loan.principal,
               remainingBalance: loan.principal,
+              outstandingPrincipal: loan.principal,
+              approvedAmount: loan.principal,
               nextPaymentDue: true
             }
           : b
       )
-      return recalcVault(
-        note(
+      const outstanding = loans
+        .filter((l) => l.status === 'active' || l.status === 'funded')
+        .reduce((s, l) => s + l.remaining, 0)
+      return note(
+        withStep(
           {
             ...state,
             loans,
             borrowers,
-            lifecycleStage: 'fund',
+            agreementAccepted: true,
             statusBanner: 'LOAN FUNDED',
+            vault: {
+              ...state.vault,
+              outstandingLoans: outstanding,
+              availableLiquidity: Math.max(0, state.vault.totalCapital - outstanding)
+            },
             protocol: {
               ...state.protocol,
               feesCollected: state.protocol.feesCollected + loan.principal * loan.originationFee,
               transactionsProcessed: state.protocol.transactionsProcessed + 1
             }
           },
-          `Funded $${loan.principal.toLocaleString()} to ${state.borrowers.find((b) => b.id === loan.borrowerId)?.name}.`
-        )
+          7
+        ),
+        `Funded $${loan.principal.toLocaleString()} from the vault to ${state.borrowers.find((b) => b.id === loan.borrowerId)?.name}.`
       )
     }
     case 'APPLY_PAYMENT': {
@@ -181,11 +252,7 @@ function reducer(state: SimulationState, action: Action): SimulationState {
       const remaining = Math.max(0, loan.remaining - action.principal)
       const loans = state.loans.map((l) =>
         l.id === action.loanId
-          ? {
-              ...l,
-              remaining,
-              status: remaining <= 0.01 ? ('paid' as const) : ('active' as const)
-            }
+          ? { ...l, remaining, status: remaining <= 0.01 ? ('paid' as const) : ('active' as const) }
           : l
       )
       const borrowers = state.borrowers.map((b) =>
@@ -193,21 +260,29 @@ function reducer(state: SimulationState, action: Action): SimulationState {
           ? {
               ...b,
               remainingBalance: remaining,
+              outstandingPrincipal: remaining,
               status: remaining <= 0.01 ? ('paid' as const) : ('repaying' as const),
               nextPaymentDue: remaining > 0.01
             }
           : b
       )
-      return recalcVault(
-        note(
+      const outstanding = loans
+        .filter((l) => l.status === 'active' || l.status === 'funded')
+        .reduce((s, l) => s + l.remaining, 0)
+      return note(
+        withStep(
           {
             ...state,
             loans,
             borrowers,
-            lifecycleStage: 'repay',
+            missedPayment: false,
+            receivedPayment: action.principal + action.interest,
+            expectedPayment: STORY.payment,
             statusBanner: `PAYMENT $${(action.principal + action.interest).toFixed(2)}`,
             vault: {
               ...state.vault,
+              outstandingLoans: outstanding,
+              availableLiquidity: Math.max(0, state.vault.totalCapital - outstanding),
               interestEarned: state.vault.interestEarned + action.interest
             },
             protocol: {
@@ -215,8 +290,9 @@ function reducer(state: SimulationState, action: Action): SimulationState {
               transactionsProcessed: state.protocol.transactionsProcessed + 1
             }
           },
-          `Payment received — principal $${action.principal.toFixed(2)}, interest $${action.interest.toFixed(2)}.`
-        )
+          9
+        ),
+        `Payment received — principal $${action.principal.toFixed(2)} returned to liquidity; interest $${action.interest.toFixed(2)} is vault yield.`
       )
     }
     case 'APPLY_YIELD': {
@@ -225,20 +301,25 @@ function reducer(state: SimulationState, action: Action): SimulationState {
           ? {
               ...d,
               earnedYield: d.earnedYield + action.amount,
-              balance: d.balance + action.amount
+              vaultPosition: d.vaultPosition + action.amount,
+              balance: action.asCash ? d.balance + action.amount : d.balance
             }
           : d
       )
-      return recalcVault(
-        note(
+      return note(
+        withStep(
           {
             ...state,
             depositors,
-            lifecycleStage: 'distribute',
-            statusBanner: `YIELD +$${action.amount.toFixed(2)}`
+            statusBanner: action.asCash
+              ? `JRPU DISTRIBUTION +$${action.amount.toFixed(2)}`
+              : `VAULT YIELD +$${action.amount.toFixed(2)}`
           },
-          `Yield distribution of $${action.amount.toFixed(2)} to ${state.depositors.find((d) => d.id === action.depositorId)?.name}.`
-        )
+          10
+        ),
+        action.asCash
+          ? `Application policy (${state.distributionPolicy}) distributed $${action.amount.toFixed(2)} cash to ${state.depositors.find((d) => d.id === action.depositorId)?.name}.`
+          : `Interest accrued as vault yield — depositor position up $${action.amount.toFixed(2)}. No automatic native XRPL daily cash payment.`
       )
     }
     case 'REQUEST_LOAN': {
@@ -246,42 +327,50 @@ function reducer(state: SimulationState, action: Action): SimulationState {
       const borrower = state.borrowers.find((b) => b.id === borrowerId)
       if (!borrower) return state
       const id = `loan-${Date.now()}`
-      const paymentAmount = Math.round((action.amount * 1.1) / 12 * 100) / 100
       const loan = {
         id,
         borrowerId,
         principal: action.amount,
         remaining: action.amount,
-        apr: 0.1,
-        termMonths: 12,
-        paymentAmount,
+        apr: STORY.apr,
+        termMonths: STORY.termMonths,
+        paymentAmount: STORY.payment,
+        paymentFrequency: 'Monthly' as const,
         originationFee: 0.01,
         status: 'pending' as const
       }
       return note(
-        {
-          ...state,
-          loans: [...state.loans, loan],
-          borrowers: state.borrowers.map((b) =>
-            b.id === borrowerId
-              ? { ...b, status: 'requesting' as const, paymentAmount, interestRate: 0.1, termMonths: 12 }
-              : b
-          ),
-          lifecycleStage: 'request',
-          underwritingPhase: 0,
-          statusBanner: 'LOAN REQUESTED'
-        },
-        `${borrower.name} requested $${action.amount.toLocaleString()}.`
+        withStep(
+          {
+            ...state,
+            loans: [...state.loans.filter((l) => l.status !== 'pending'), loan],
+            borrowers: state.borrowers.map((b) =>
+              b.id === borrowerId
+                ? {
+                    ...b,
+                    status: 'requesting' as const,
+                    requestedAmount: action.amount,
+                    paymentAmount: STORY.payment,
+                    interestRate: STORY.apr,
+                    termMonths: STORY.termMonths
+                  }
+                : b
+            ),
+            underwritingPhase: 0,
+            statusBanner: 'LOAN REQUESTED'
+          },
+          5
+        ),
+        `${borrower.name} requested $${action.amount.toLocaleString()} for ${borrower.purpose || 'working capital'}.`
       )
     }
     case 'ADVANCE_UNDERWRITE': {
       const phase = Math.min(4, state.underwritingPhase + 1)
-      const stages = ['REQUEST', 'UNDERWRITE', 'APPROVE', 'SIGN', 'FUND']
       return {
         ...state,
         underwritingPhase: phase,
-        lifecycleStage: phase < 2 ? 'underwrite' : phase < 3 ? 'approve' : 'fund',
-        statusBanner: stages[phase] ?? 'FUND'
+        lifecycleStage: phase < 2 ? 'request' : 'approve',
+        statusBanner: phase < 2 ? 'REVIEWING' : 'READY TO APPROVE'
       }
     }
     case 'APPROVE_LOAN': {
@@ -291,18 +380,22 @@ function reducer(state: SimulationState, action: Action): SimulationState {
         return note(state, 'Not enough available liquidity to approve.')
       }
       return note(
-        {
-          ...state,
-          loans: state.loans.map((l) =>
-            l.id === pending.id ? { ...l, status: 'approved' as const } : l
-          ),
-          borrowers: state.borrowers.map((b) =>
-            b.id === pending.borrowerId ? { ...b, status: 'approved' as const } : b
-          ),
-          lifecycleStage: 'approve',
-          statusBanner: 'APPROVED'
-        },
-        `Approved $${pending.principal.toLocaleString()}. Ready to fund.`
+        withStep(
+          {
+            ...state,
+            loans: state.loans.map((l) =>
+              l.id === pending.id ? { ...l, status: 'approved' as const } : l
+            ),
+            borrowers: state.borrowers.map((b) =>
+              b.id === pending.borrowerId
+                ? { ...b, status: 'approved' as const, approvedAmount: pending.principal }
+                : b
+            ),
+            statusBanner: 'APPROVED'
+          },
+          6
+        ),
+        `Approved $${pending.principal.toLocaleString()}. Ready to fund from vault liquidity.`
       )
     }
     case 'REJECT_LOAN': {
@@ -330,10 +423,14 @@ function reducer(state: SimulationState, action: Action): SimulationState {
         name: action.name ?? `LP ${n}`,
         wallet: `rLP${n}Demo…`,
         balance: amount * 2,
-        deposited: amount,
+        deposited: 0,
+        vaultPosition: 0,
         earnedYield: 0
       }
-      return recalcVault(note({ ...state, depositors: [...state.depositors, d] }, `${d.name} joined with $${amount.toLocaleString()}.`))
+      return note(
+        { ...state, depositors: [...state.depositors, d], primaryDepositorId: d.id },
+        `${d.name} joined and can now deposit.`
+      )
     }
     case 'ADD_BORROWER': {
       const n = state.borrowers.length + 1
@@ -341,13 +438,17 @@ function reducer(state: SimulationState, action: Action): SimulationState {
         id: `b-${Date.now()}`,
         name: action.name ?? `Borrower ${n} LLC`,
         wallet: `rBorr${n}Demo…`,
+        requestedAmount: 0,
+        approvedAmount: 0,
         loanPrincipal: 0,
         remainingBalance: 0,
-        interestRate: 0.1,
-        termMonths: 12,
-        paymentAmount: 0,
+        outstandingPrincipal: 0,
+        interestRate: STORY.apr,
+        termMonths: STORY.termMonths,
+        paymentAmount: STORY.payment,
         status: 'none' as const,
-        nextPaymentDue: false
+        nextPaymentDue: false,
+        purpose: 'Working capital'
       }
       return note(
         { ...state, borrowers: [...state.borrowers, b], primaryBorrowerId: b.id },
@@ -361,6 +462,7 @@ function reducer(state: SimulationState, action: Action): SimulationState {
         {
           ...state,
           showAdvancedRoles: true,
+          advancedReveal: Math.max(state.advancedReveal, 4),
           loans: state.loans.map((l) =>
             l.id === active.id ? { ...l, guarantor: 'Sam Guarantor' } : l
           ),
@@ -368,7 +470,7 @@ function reducer(state: SimulationState, action: Action): SimulationState {
             b.id === active.borrowerId ? { ...b, guarantor: 'Sam Guarantor' } : b
           )
         },
-        `Sam Guarantor now stands behind the borrower.`
+        'Sam Guarantor now stands behind the borrower.'
       )
     }
     case 'SIMULATE_DEFAULT': {
@@ -376,40 +478,64 @@ function reducer(state: SimulationState, action: Action): SimulationState {
       if (!active) return note(state, 'No active loan to default.')
       const haircut = Math.round(active.remaining * 0.2)
       const total = state.depositors.reduce((s, d) => s + d.deposited, 0) || 1
-      const depositors = state.depositors.map((d) => ({
-        ...d,
-        deposited: Math.max(0, Math.round(d.deposited - (d.deposited / total) * haircut))
-      }))
-      return recalcVault(
-        note(
-          {
-            ...state,
-            depositors,
-            defaultedConnection: true,
-            riskMode: true,
-            statusBanner: 'DEFAULT — $0 RECEIVED',
-            loans: state.loans.map((l) =>
-              l.id === active.id ? { ...l, status: 'defaulted' as const, remaining: 0 } : l
-            ),
-            borrowers: state.borrowers.map((b) =>
-              b.id === active.borrowerId
-                ? { ...b, status: 'defaulted' as const, remainingBalance: 0, nextPaymentDue: false }
-                : b
-            )
+      const depositors = state.depositors.map((d) => {
+        const loss = (d.deposited / total) * haircut
+        return {
+          ...d,
+          deposited: Math.max(0, Math.round(d.deposited - loss)),
+          vaultPosition: Math.max(0, Math.round(d.vaultPosition - loss))
+        }
+      })
+      const capital = depositors.reduce((s, d) => s + d.deposited, 0)
+      return note(
+        {
+          ...state,
+          depositors,
+          defaultedConnection: true,
+          missedPayment: true,
+          riskMode: true,
+          receivedPayment: 0,
+          expectedPayment: DEMO_PAYMENT,
+          statusBanner: 'DEFAULT — $0 RECEIVED',
+          vault: {
+            ...state.vault,
+            totalCapital: capital,
+            outstandingLoans: 0,
+            availableLiquidity: capital
           },
-          `Default: expected $${DEMO_PAYMENT.toFixed(2)}, received $0. ~$${haircut.toLocaleString()} shortfall hits depositor positions.`
-        )
+          loans: state.loans.map((l) =>
+            l.id === active.id ? { ...l, status: 'defaulted' as const, remaining: 0 } : l
+          ),
+          borrowers: state.borrowers.map((b) =>
+            b.id === active.borrowerId
+              ? {
+                  ...b,
+                  status: 'defaulted' as const,
+                  remainingBalance: 0,
+                  outstandingPrincipal: 0,
+                  nextPaymentDue: false
+                }
+              : b
+          )
+        },
+        `Default: expected $${DEMO_PAYMENT.toFixed(2)}, received $0. About $${haircut.toLocaleString()} shortfall hits depositor positions.`
       )
     }
     case 'MISS_PAYMENT':
       return note(
-        {
-          ...state,
-          defaultedConnection: true,
-          statusBanner: `LATE — expected $${DEMO_PAYMENT.toFixed(2)}, received $0`,
-          riskMode: true
-        },
-        'Missed payment. Borrower-to-vault pipeline in warning state.'
+        withStep(
+          {
+            ...state,
+            defaultedConnection: true,
+            missedPayment: true,
+            receivedPayment: 0,
+            expectedPayment: DEMO_PAYMENT,
+            statusBanner: `MISSED — expected $${DEMO_PAYMENT.toFixed(2)}, received $0`,
+            riskMode: true
+          },
+          9
+        ),
+        'Missed payment. Expected cash did not return to the vault.'
       )
     case 'WITHDRAW': {
       const d = state.depositors.find((x) => x.id === state.primaryDepositorId)
@@ -418,10 +544,27 @@ function reducer(state: SimulationState, action: Action): SimulationState {
       if (amt <= 0) return note(state, 'Insufficient liquidity for withdrawal.')
       const depositors = state.depositors.map((x) =>
         x.id === d.id
-          ? { ...x, deposited: x.deposited - amt, balance: x.balance + amt }
+          ? {
+              ...x,
+              deposited: x.deposited - amt,
+              vaultPosition: Math.max(0, x.vaultPosition - amt),
+              balance: x.balance + amt
+            }
           : x
       )
-      return recalcVault(note({ ...state, depositors }, `${d.name} withdrew $${amt.toLocaleString()}.`))
+      const totalDep = depositors.reduce((s, x) => s + x.deposited, 0)
+      return note(
+        {
+          ...state,
+          depositors,
+          vault: {
+            ...state.vault,
+            totalCapital: totalDep,
+            availableLiquidity: Math.max(0, totalDep - state.vault.outstandingLoans)
+          }
+        },
+        `${d.name} withdrew $${amt.toLocaleString()}.`
+      )
     }
     case 'PAY_OFF': {
       const active = state.loans.find(
@@ -441,8 +584,6 @@ function reducer(state: SimulationState, action: Action): SimulationState {
         }
       )
     }
-    case 'SET_RISK_MODE':
-      return { ...state, riskMode: action.on }
     default:
       return state
   }
@@ -458,10 +599,16 @@ export type SimulationApi = {
   selectEntity: (entity: EntityId | null) => void
   selectTerm: (term: string | null) => void
   toggleAdvanced: (show?: boolean) => void
+  setAdvancedReveal: (level: number) => void
   setStage: (stage: LifecycleStage) => void
+  setDistributionPolicy: (policy: DistributionPolicy) => void
   clearAnimation: (id: string) => void
   startAnimation: (id: string) => void
-  queueAnimation: (anim: Omit<AnimationRequest, 'id' | 'started'> & { id?: string; onComplete?: () => void }) => string
+  queueAnimation: (
+    anim: Omit<AnimationRequest, 'id' | 'started'> & { id?: string; onComplete?: () => void }
+  ) => string
+  configureVault: () => void
+  acceptAgreement: () => void
   deposit: (amount?: number, animate?: boolean) => void
   requestLoan: (amount?: number) => void
   advanceUnderwrite: () => void
@@ -477,16 +624,32 @@ export type SimulationApi = {
   missPayment: () => void
   withdraw: (amount?: number) => void
   payOff: () => void
+  goToStep: (step: number, animate: boolean, lesson?: number) => void
   playLifecycleStep: (step: number, reducedMotion: boolean) => void
 }
 
 const SimulationContext = createContext<SimulationApi | null>(null)
 
-export function SimulationProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, createInitialState)
+function hydrateQuiet(step: number, prev: SimulationState): SimulationState {
+  const seeded = stateFromSnapshotStep(Math.max(0, step))
+  return {
+    ...seeded,
+    selectedEntity: prev.selectedEntity,
+    selectedTerm: prev.selectedTerm,
+    showAdvancedRoles: prev.showAdvancedRoles,
+    advancedReveal: prev.advancedReveal,
+    distributionPolicy: prev.distributionPolicy,
+    pendingAnimations: []
+  }
+}
 
-  const primaryDepositor = state.depositors.find((d) => d.id === state.primaryDepositorId) ?? state.depositors[0]
-  const primaryBorrower = state.borrowers.find((b) => b.id === state.primaryBorrowerId) ?? state.borrowers[0]
+export function SimulationProvider({ children }: { children: ReactNode }) {
+  const [state, dispatch] = useReducer(reducer, undefined, () => createInitialState(0))
+
+  const primaryDepositor =
+    state.depositors.find((d) => d.id === state.primaryDepositorId) ?? state.depositors[0]
+  const primaryBorrower =
+    state.borrowers.find((b) => b.id === state.primaryBorrowerId) ?? state.borrowers[0]
   const primaryLoan = state.loans.find(
     (l) =>
       l.borrowerId === primaryBorrower?.id &&
@@ -515,7 +678,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const deposit = useCallback(
-    (amount = DEMO_DEPOSIT, animate = true) => {
+    (amount: number = DEMO_DEPOSIT, animate = true) => {
       const depositorId = state.primaryDepositorId
       if (!animate) {
         dispatch({ type: 'APPLY_DEPOSIT', depositorId, amount })
@@ -529,7 +692,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
         label: `$${amount.toLocaleString()}`,
         onComplete: () => dispatch({ type: 'APPLY_DEPOSIT', depositorId, amount })
       })
-      dispatch({ type: 'SET_STAGE', stage: 'deposit' })
+      dispatch({ type: 'SET_STEP', step: 3 })
       dispatch({ type: 'SET_BANNER', banner: 'DEPOSITING…' })
     },
     [queueAnimation, state.primaryDepositorId]
@@ -544,9 +707,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'NOTE', msg: 'No approved loan to fund.' })
         return
       }
-      if (loan.status === 'pending') {
-        dispatch({ type: 'APPROVE_LOAN' })
-      }
+      if (loan.status === 'pending') dispatch({ type: 'APPROVE_LOAN' })
       const run = () => dispatch({ type: 'APPLY_LOAN_FUND', loanId: loan.id })
       if (!animate) {
         run()
@@ -578,20 +739,17 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       }
       const principal = Math.min(DEMO_PRINCIPAL_SHARE, loan.remaining)
       const interest = DEMO_INTEREST_SHARE
-      const run = () =>
-        dispatch({ type: 'APPLY_PAYMENT', loanId: loan.id, principal, interest })
+      const run = () => dispatch({ type: 'APPLY_PAYMENT', loanId: loan.id, principal, interest })
       if (!animate) {
         run()
         return
       }
-      const total = principal + interest
       queueAnimation({
         from: 'borrower',
         to: 'vault',
-        amount: total,
+        amount: principal,
         kind: 'principal',
-        label: `Principal $${principal.toFixed(2)}`,
-        onComplete: undefined
+        label: `Principal $${principal.toFixed(2)}`
       })
       queueAnimation({
         from: 'borrower',
@@ -610,7 +768,8 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
     (animate = true) => {
       const amount = DEMO_YIELD
       const depositorId = state.primaryDepositorId
-      const run = () => dispatch({ type: 'APPLY_YIELD', depositorId, amount })
+      const asCash = state.distributionPolicy !== 'accrue'
+      const run = () => dispatch({ type: 'APPLY_YIELD', depositorId, amount, asCash })
       if (!animate) {
         run()
         return
@@ -620,51 +779,169 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
         to: 'depositor',
         amount,
         kind: 'yield',
-        label: `Yield +$${amount.toFixed(2)}`,
+        label: asCash ? `Distribution +$${amount.toFixed(2)}` : `Yield +$${amount.toFixed(2)}`,
         onComplete: run
       })
-      dispatch({ type: 'SET_BANNER', banner: 'DISTRIBUTING YIELD…' })
+      dispatch({
+        type: 'SET_BANNER',
+        banner: asCash ? 'JRPU DISTRIBUTION…' : 'VAULT YIELD ACCRUING…'
+      })
     },
-    [queueAnimation, state.primaryDepositorId]
+    [queueAnimation, state.primaryDepositorId, state.distributionPolicy]
+  )
+
+  const goToStep = useCallback(
+    (step: number, animate: boolean, lesson = 0) => {
+      const [min, max] = lessonStepRange(lesson)
+      const target = Math.max(min, Math.min(max, step))
+      const before = hydrateQuiet(target - 1, state)
+      dispatch({
+        type: 'HYDRATE',
+        state: { ...before, currentStep: target, lifecycleStage: stageForStep(target) }
+      })
+
+      const play = animate && stepHasMotion(target)
+      if (target === 1) {
+        dispatch({ type: 'SET_BANNER', banner: 'STEP 1 — SET THE RULES' })
+        dispatch({ type: 'NOTE', msg: 'Administrator defines vault limits, asset, and lending rules.' })
+        dispatch({ type: 'SELECT_ENTITY', entity: 'administrator' })
+        return
+      }
+      if (target === 2) {
+        dispatch({ type: 'CONFIGURE_VAULT' })
+        dispatch({ type: 'SELECT_ENTITY', entity: 'vault' })
+        return
+      }
+      if (target === 3) {
+        if (play) {
+          queueAnimation({
+            from: 'depositor',
+            to: 'vault',
+            amount: STORY.deposit,
+            kind: 'deposit',
+            label: `$${STORY.deposit.toLocaleString()}`,
+            onComplete: () =>
+              dispatch({ type: 'APPLY_DEPOSIT', depositorId: 'd-alice', amount: STORY.deposit })
+          })
+          dispatch({ type: 'SET_BANNER', banner: 'DEPOSITING…' })
+        } else {
+          dispatch({ type: 'APPLY_DEPOSIT', depositorId: 'd-alice', amount: STORY.deposit })
+        }
+        dispatch({ type: 'SELECT_ENTITY', entity: 'depositor' })
+        return
+      }
+      if (target === 4) {
+        dispatch({ type: 'SET_BANNER', banner: 'CAPITAL AVAILABLE' })
+        dispatch({ type: 'NOTE', msg: `Vault holds $${STORY.deposit.toLocaleString()} of available liquidity.` })
+        dispatch({ type: 'SELECT_ENTITY', entity: 'vault' })
+        return
+      }
+      if (target === 5) {
+        dispatch({ type: 'REQUEST_LOAN', amount: STORY.loan })
+        if (play) {
+          queueAnimation({
+            from: 'borrower',
+            to: 'administrator',
+            amount: 1,
+            kind: 'request',
+            label: 'Loan request'
+          })
+        }
+        dispatch({ type: 'SELECT_ENTITY', entity: 'borrower' })
+        return
+      }
+      if (target === 6) {
+        dispatch({ type: 'APPROVE_LOAN' })
+        dispatch({ type: 'SELECT_ENTITY', entity: 'administrator' })
+        return
+      }
+      if (target === 7) {
+        if (play) {
+          queueAnimation({
+            from: 'vault',
+            to: 'borrower',
+            amount: STORY.loan,
+            kind: 'loan',
+            label: `$${STORY.loan.toLocaleString()}`,
+            onComplete: () => dispatch({ type: 'APPLY_LOAN_FUND', loanId: 'loan-story' })
+          })
+          dispatch({ type: 'SET_BANNER', banner: 'FUNDING…' })
+        } else {
+          dispatch({ type: 'APPLY_LOAN_FUND', loanId: 'loan-story' })
+        }
+        dispatch({ type: 'SELECT_ENTITY', entity: 'borrower' })
+        return
+      }
+      if (target === 8) {
+        dispatch({ type: 'ACCEPT_AGREEMENT' })
+        dispatch({ type: 'SELECT_ENTITY', entity: 'agreement' })
+        return
+      }
+      if (target === 9) {
+        if (play) {
+          queueAnimation({
+            from: 'borrower',
+            to: 'vault',
+            amount: DEMO_PRINCIPAL_SHARE,
+            kind: 'principal',
+            label: `Principal $${DEMO_PRINCIPAL_SHARE.toFixed(2)}`
+          })
+          queueAnimation({
+            from: 'borrower',
+            to: 'vault',
+            amount: DEMO_INTEREST_SHARE,
+            kind: 'interest',
+            label: `Interest $${DEMO_INTEREST_SHARE.toFixed(2)}`,
+            onComplete: () =>
+              dispatch({
+                type: 'APPLY_PAYMENT',
+                loanId: 'loan-story',
+                principal: DEMO_PRINCIPAL_SHARE,
+                interest: DEMO_INTEREST_SHARE
+              })
+          })
+          dispatch({ type: 'SET_BANNER', banner: `PAYMENT $${DEMO_PAYMENT.toFixed(2)}` })
+        } else {
+          dispatch({
+            type: 'APPLY_PAYMENT',
+            loanId: 'loan-story',
+            principal: DEMO_PRINCIPAL_SHARE,
+            interest: DEMO_INTEREST_SHARE
+          })
+        }
+        dispatch({ type: 'SELECT_ENTITY', entity: 'borrower' })
+        return
+      }
+      if (target === 10) {
+        const asCash = state.distributionPolicy !== 'accrue'
+        if (play) {
+          queueAnimation({
+            from: 'vault',
+            to: 'depositor',
+            amount: DEMO_YIELD,
+            kind: 'yield',
+            label: asCash ? `Distribution +$${DEMO_YIELD.toFixed(2)}` : `Yield +$${DEMO_YIELD.toFixed(2)}`,
+            onComplete: () =>
+              dispatch({ type: 'APPLY_YIELD', depositorId: 'd-alice', amount: DEMO_YIELD, asCash })
+          })
+          dispatch({
+            type: 'SET_BANNER',
+            banner: asCash ? 'JRPU DISTRIBUTION…' : 'VAULT YIELD ACCRUING…'
+          })
+        } else {
+          dispatch({ type: 'APPLY_YIELD', depositorId: 'd-alice', amount: DEMO_YIELD, asCash })
+        }
+        dispatch({ type: 'SELECT_ENTITY', entity: 'depositor' })
+      }
+    },
+    [queueAnimation, state]
   )
 
   const playLifecycleStep = useCallback(
     (step: number, reducedMotion: boolean) => {
-      const animate = !reducedMotion
-      switch (step) {
-        case 0:
-          deposit(DEMO_DEPOSIT, animate)
-          break
-        case 1:
-          dispatch({ type: 'SET_STAGE', stage: 'deposit' })
-          dispatch({ type: 'SET_BANNER', banner: 'VAULT FUNDED' })
-          dispatch({ type: 'NOTE', msg: 'Vault holds pooled capital ready to lend.' })
-          break
-        case 2:
-          dispatch({ type: 'REQUEST_LOAN', amount: DEMO_LOAN })
-          break
-        case 3:
-          dispatch({ type: 'ADVANCE_UNDERWRITE' })
-          dispatch({ type: 'APPROVE_LOAN' })
-          break
-        case 4:
-          fundLoan(animate)
-          break
-        case 5:
-          makePayment(animate)
-          break
-        case 6:
-          dispatch({ type: 'SET_BANNER', banner: 'INTEREST RECEIVED' })
-          dispatch({ type: 'NOTE', msg: 'Interest portion settled into vault earnings.' })
-          break
-        case 7:
-          distributeYield(animate)
-          break
-        default:
-          break
-      }
+      goToStep(step, !reducedMotion, 5)
     },
-    [deposit, distributeYield, fundLoan, makePayment]
+    [goToStep]
   )
 
   const api = useMemo<SimulationApi>(
@@ -678,10 +955,14 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       selectEntity: (entity) => dispatch({ type: 'SELECT_ENTITY', entity }),
       selectTerm: (term) => dispatch({ type: 'SELECT_TERM', term }),
       toggleAdvanced: (show) => dispatch({ type: 'TOGGLE_ADVANCED', show }),
+      setAdvancedReveal: (level) => dispatch({ type: 'SET_ADVANCED_REVEAL', level }),
       setStage: (stage) => dispatch({ type: 'SET_STAGE', stage }),
+      setDistributionPolicy: (policy) => dispatch({ type: 'SET_DISTRIBUTION', policy }),
       clearAnimation,
       startAnimation,
       queueAnimation,
+      configureVault: () => dispatch({ type: 'CONFIGURE_VAULT' }),
+      acceptAgreement: () => dispatch({ type: 'ACCEPT_AGREEMENT' }),
       deposit,
       requestLoan: (amount = DEMO_LOAN) => dispatch({ type: 'REQUEST_LOAN', amount }),
       advanceUnderwrite: () => dispatch({ type: 'ADVANCE_UNDERWRITE' }),
@@ -697,6 +978,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       missPayment: () => dispatch({ type: 'MISS_PAYMENT' }),
       withdraw: (amount = 2000) => dispatch({ type: 'WITHDRAW', amount }),
       payOff: () => dispatch({ type: 'PAY_OFF' }),
+      goToStep,
       playLifecycleStep
     }),
     [
@@ -711,6 +993,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       fundLoan,
       makePayment,
       distributeYield,
+      goToStep,
       playLifecycleStep
     ]
   )
@@ -723,3 +1006,6 @@ export function useSimulation() {
   if (!ctx) throw new Error('useSimulation must be used within SimulationProvider')
   return ctx
 }
+
+void snapshotAfterStep
+void lessonStartStep

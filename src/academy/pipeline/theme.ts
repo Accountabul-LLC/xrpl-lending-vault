@@ -1,4 +1,5 @@
 import type { EntityId, FlowKind, LifecycleStage, SimulationState } from '../simulation/types'
+import { STORY_STEPS } from '../experience/story'
 
 export const COLORS = {
   bg: 0x0b1220,
@@ -10,25 +11,42 @@ export const COLORS = {
   depositorEmissive: 0x059669,
   borrower: 0xfbbf24,
   borrowerEmissive: 0xd97706,
+  administrator: 0xa5b4fc,
   risk: 0xf43f5e,
   interest: 0xa78bfa,
   yield: 0x6ee7b7,
+  principal: 0xfbbf24,
   pipe: 0x334155,
   pipeActive: 0x64748b,
   admin: 0x6366f1,
   white: 0xe2e8f0
 } as const
 
+/**
+ * Shared world layout (ground plane y=0):
+ *
+ *                 PROTOCOL OFFICE
+ *                      │
+ *               Administrator
+ *                      │
+ *                      ▼
+ * Depositor ──────→ LENDING VAULT ──────→ Borrower
+ *                       ▲                       │
+ *                       └──── Repayment ────────┘
+ */
 export const ENTITY_POSITIONS: Record<EntityId, [number, number, number]> = {
-  protocol: [0, 3.4, 0],
-  vault: [0, 0.35, 0],
-  depositor: [-4.2, -1.1, 0.4],
-  borrower: [4.2, -1.1, 0.4],
-  guarantor: [4.2, 1.4, -1.2],
-  broker: [-2.2, -2.6, 0.8],
-  underwriter: [2.2, 2.2, -0.8],
-  servicer: [0, -2.8, 1.2],
-  custodian: [-4.2, 1.6, -1]
+  protocol: [0, 0, -3.35],
+  administrator: [0, 0, -1.85],
+  vault: [0, 0, 0.15],
+  depositor: [-4.35, 0, 0.35],
+  borrower: [4.35, 0, 0.35],
+  agreement: [2.55, 0, 1.15],
+  originator: [3.15, 0, -1.85],
+  underwriter: [1.55, 0, -2.55],
+  broker: [3.85, 0, 2.05],
+  guarantor: [5.35, 0, -1.15],
+  custodian: [-5.25, 0, -1.25],
+  servicer: [0, 0, 2.55]
 }
 
 export type CameraPreset = {
@@ -38,60 +56,75 @@ export type CameraPreset = {
 }
 
 export const LESSON_CAMERAS: Record<number, CameraPreset> = {
-  0: { position: [0, 2.2, 11.5], lookAt: [0, 0.4, 0] },
-  1: { position: [0.4, 1.4, 7.2], lookAt: [0, 0.5, 0] },
-  2: { position: [-3.2, 1.2, 8], lookAt: [-2, -0.2, 0] },
-  3: { position: [3.2, 1.2, 8], lookAt: [2, -0.2, 0] },
-  4: { position: [0, 1.8, 10], lookAt: [0, 0.2, 0] },
-  5: { position: [0, 2.4, 11], lookAt: [0, 0.3, 0] },
-  6: { position: [1.5, 2.6, 10.5], lookAt: [0.5, 0, 0] },
-  7: { position: [0, 3, 12.5], lookAt: [0, 0.2, 0] }
+  0: { position: [0, 3.6, 12.2], lookAt: [0, 0.7, 0] },
+  1: { position: [0.3, 2.8, 8.4], lookAt: [0, 0.9, 0] },
+  2: { position: [-3.4, 2.6, 8.8], lookAt: [-1.6, 0.6, 0] },
+  3: { position: [3.2, 2.6, 8.8], lookAt: [1.6, 0.6, 0] },
+  4: { position: [2.8, 2.4, 8], lookAt: [1.8, 0.9, 0.4] },
+  5: { position: [0, 3.4, 11.6], lookAt: [0, 0.6, 0] },
+  6: { position: [1.8, 3, 10.4], lookAt: [0.8, 0.5, 0] },
+  7: { position: [0, 4, 13], lookAt: [0, 0.5, 0] }
 }
 
 export const FLOW_COLORS: Record<FlowKind, number> = {
   deposit: COLORS.depositor,
   loan: COLORS.borrower,
-  principal: COLORS.borrower,
+  principal: COLORS.principal,
   interest: COLORS.interest,
   yield: COLORS.yield,
   admin: COLORS.admin,
+  request: COLORS.borrower,
   default: COLORS.risk
 }
 
 export function lessonFocusEntities(lesson: number): EntityId[] {
   switch (lesson) {
     case 0:
-      return ['protocol', 'depositor', 'borrower', 'vault']
+      return ['protocol', 'administrator', 'depositor', 'borrower', 'vault']
     case 1:
-      return ['vault', 'protocol']
+      return ['administrator', 'protocol', 'vault']
     case 2:
       return ['depositor', 'vault']
     case 3:
-      return ['vault', 'borrower']
+      return ['borrower', 'vault', 'administrator']
     case 4:
-      return ['borrower', 'vault']
+      return ['borrower', 'agreement', 'vault']
     case 5:
-      return ['depositor', 'vault', 'borrower', 'protocol']
+      return ['depositor', 'vault', 'borrower', 'administrator', 'protocol']
     case 6:
       return ['borrower', 'vault', 'depositor']
     default:
-      return ['protocol', 'vault', 'depositor', 'borrower']
+      return ['protocol', 'administrator', 'vault', 'depositor', 'borrower']
   }
+}
+
+export function cameraForStep(step: number, lesson: number): CameraPreset {
+  const story = STORY_STEPS[step - 1]
+  if (story) return story.camera
+  return LESSON_CAMERAS[lesson] ?? LESSON_CAMERAS[0]
 }
 
 export function stageHighlight(stage: LifecycleStage): { from: EntityId; to: EntityId } | null {
   switch (stage) {
+    case 'configure':
+      return { from: 'administrator', to: 'vault' }
+    case 'create':
+      return { from: 'administrator', to: 'vault' }
     case 'deposit':
       return { from: 'depositor', to: 'vault' }
+    case 'available':
+      return { from: 'depositor', to: 'vault' }
     case 'request':
-    case 'underwrite':
+      return { from: 'borrower', to: 'administrator' }
     case 'approve':
-      return { from: 'borrower', to: 'vault' }
+      return { from: 'administrator', to: 'borrower' }
     case 'fund':
       return { from: 'vault', to: 'borrower' }
+    case 'agree':
+      return { from: 'borrower', to: 'agreement' }
     case 'repay':
       return { from: 'borrower', to: 'vault' }
-    case 'distribute':
+    case 'earn':
       return { from: 'vault', to: 'depositor' }
     default:
       return null

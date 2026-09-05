@@ -1,138 +1,163 @@
-import type { SimulationState } from './types'
+import { snapshotAfterStep, STORY } from '../experience/story'
+import { stageForStep, type SimulationState } from './types'
 
-/** Classroom starting balances — educational dollars, not on-ledger. */
-export function createInitialState(): SimulationState {
-  const depositors = [
-    {
-      id: 'd-alice',
-      name: 'Alice',
-      wallet: 'rAliceDemo…x7K2',
-      balance: 15000,
-      deposited: 10000,
-      earnedYield: 0
-    },
-    {
-      id: 'd-james',
-      name: 'James',
-      wallet: 'rJamesDemo…m9P1',
-      balance: 20000,
-      deposited: 5000,
-      earnedYield: 0
-    },
-    {
-      id: 'd-abc',
-      name: 'Company ABC',
-      wallet: 'rAbcDemo…q4R8',
-      balance: 50000,
-      deposited: 25000,
-      earnedYield: 125
-    },
-    {
-      id: 'd-priya',
-      name: 'Priya',
-      wallet: 'rPriyaDemo…t2L5',
-      balance: 12000,
-      deposited: 20000,
-      earnedYield: 200
-    },
-    {
-      id: 'd-north',
-      name: 'Northside Credit',
-      wallet: 'rNorthDemo…w6H3',
-      balance: 30000,
-      deposited: 15000,
-      earnedYield: 150
-    }
-  ]
-
-  const borrowers = [
-    {
-      id: 'b-bob',
-      name: "Bob's Construction LLC",
-      wallet: 'rBobDemo…c1N4',
-      loanPrincipal: 8000,
-      remainingBalance: 8000,
-      interestRate: 0.1,
-      termMonths: 12,
-      paymentAmount: 703.33,
-      status: 'funded' as const,
-      nextPaymentDue: true
-    },
-    {
-      id: 'b-clinic',
-      name: 'River Clinic',
-      wallet: 'rClinicDemo…v8S2',
-      loanPrincipal: 18000,
-      remainingBalance: 18000,
-      interestRate: 0.1,
-      termMonths: 24,
-      paymentAmount: 829.15,
-      status: 'funded' as const,
-      nextPaymentDue: true
-    },
-    {
-      id: 'b-elm',
-      name: 'Elm Freight',
-      wallet: 'rElmDemo…p5M7',
-      loanPrincipal: 14000,
-      remainingBalance: 14000,
-      interestRate: 0.1,
-      termMonths: 18,
-      paymentAmount: 848.42,
-      status: 'funded' as const,
-      nextPaymentDue: true
-    }
-  ]
-
-  const loans = borrowers.map((b, i) => ({
-    id: `loan-${i + 1}`,
-    borrowerId: b.id,
-    principal: b.loanPrincipal,
-    remaining: b.remainingBalance,
-    apr: b.interestRate,
-    termMonths: b.termMonths,
-    paymentAmount: b.paymentAmount,
-    originationFee: 0.01,
-    status: 'active' as const
-  }))
-
-  const totalDeposited = depositors.reduce((s, d) => s + d.deposited, 0)
-  const outstanding = loans.reduce((s, l) => s + l.remaining, 0)
-  const interestEarned = depositors.reduce((s, d) => s + d.earnedYield, 0)
+function applySnapshot(state: SimulationState, step: number): SimulationState {
+  const snap = snapshotAfterStep(step)
+  const depositor = {
+    ...state.depositors[0],
+    id: 'd-alice',
+    name: 'Alice',
+    wallet: 'rAliceDemo…x7K2',
+    balance: snap.depositorBalance,
+    deposited: snap.deposited,
+    vaultPosition: snap.vaultPosition,
+    earnedYield: snap.earnedYield
+  }
+  const borrower = {
+    ...state.borrowers[0],
+    id: 'b-bob',
+    name: "Bob's Construction LLC",
+    wallet: 'rBobDemo…c1N4',
+    requestedAmount: snap.requestedAmount,
+    approvedAmount: snap.approvedAmount,
+    loanPrincipal: snap.approvedAmount || snap.requestedAmount,
+    remainingBalance: snap.outstandingPrincipal,
+    outstandingPrincipal: snap.outstandingPrincipal,
+    interestRate: STORY.apr,
+    termMonths: STORY.termMonths,
+    paymentAmount: STORY.payment,
+    status: snap.borrowerStatus,
+    nextPaymentDue: snap.loanStatus === 'active' || snap.loanStatus === 'funded',
+    purpose: 'Equipment'
+  }
+  const loan =
+    snap.loanStatus === 'none'
+      ? []
+      : [
+          {
+            id: 'loan-story',
+            borrowerId: 'b-bob',
+            principal: STORY.loan,
+            remaining: snap.outstandingPrincipal || (snap.loanStatus === 'pending' || snap.loanStatus === 'approved' ? STORY.loan : 0),
+            apr: STORY.apr,
+            termMonths: STORY.termMonths,
+            paymentAmount: STORY.payment,
+            paymentFrequency: 'Monthly' as const,
+            originationFee: 0.01,
+            status: snap.loanStatus
+          }
+        ]
 
   return {
+    ...state,
+    currentStep: snap.currentStep,
+    rulesDefined: snap.rulesDefined,
+    agreementAccepted: snap.agreementVisible,
+    missedPayment: snap.missedPayment,
+    expectedPayment: STORY.payment,
+    receivedPayment: snap.missedPayment ? 0 : step >= 9 ? STORY.payment : 0,
+    lifecycleStage: stageForStep(snap.currentStep),
     vault: {
-      totalCapital: totalDeposited,
-      availableLiquidity: totalDeposited - outstanding,
-      outstandingLoans: outstanding,
-      interestEarned,
-      maxSize: 250000
+      ...state.vault,
+      configured: snap.vaultConfigured,
+      totalCapital: snap.totalCapital,
+      availableLiquidity: snap.availableLiquidity,
+      outstandingLoans: snap.outstandingLoans,
+      interestEarned: snap.interestEarned,
+      maxSize: STORY.maxVault,
+      asset: STORY.asset,
+      minDeposit: STORY.minDeposit,
+      maxDeposit: STORY.maxDeposit,
+      maxLtv: STORY.maxLtv
     },
-    protocol: {
-      feesCollected: 400,
-      transactionsProcessed: 12
-    },
-    depositors,
-    borrowers,
-    loans,
+    depositors: [depositor],
+    borrowers: [borrower],
+    loans: loan,
     primaryDepositorId: 'd-alice',
-    primaryBorrowerId: 'b-bob',
-    lifecycleStage: 'deposit',
-    selectedEntity: null,
-    selectedTerm: null,
-    showAdvancedRoles: false,
-    statusBanner: null,
-    log: ['JRPU classroom vault open — $75,000 deposited, $40,000 currently lent.'],
-    pendingAnimations: [],
-    underwritingPhase: 0,
-    riskMode: false,
-    defaultedConnection: false
+    primaryBorrowerId: 'b-bob'
   }
 }
 
-export const DEMO_DEPOSIT = 10000
-export const DEMO_LOAN = 8000
-export const DEMO_PAYMENT = 703.33
-export const DEMO_PRINCIPAL_SHARE = 636.67
-export const DEMO_INTEREST_SHARE = 66.66
-export const DEMO_YIELD = 42.5
+/** Classroom starts empty so the origin of capital can be taught. */
+export function createInitialState(step = 0): SimulationState {
+  const base: SimulationState = {
+    currentStep: 1,
+    vault: {
+      configured: false,
+      totalCapital: 0,
+      availableLiquidity: 0,
+      outstandingLoans: 0,
+      interestEarned: 0,
+      maxSize: STORY.maxVault,
+      asset: STORY.asset,
+      minDeposit: STORY.minDeposit,
+      maxDeposit: STORY.maxDeposit,
+      maxLtv: STORY.maxLtv
+    },
+    protocol: {
+      feesCollected: 0,
+      transactionsProcessed: 0
+    },
+    depositors: [
+      {
+        id: 'd-alice',
+        name: 'Alice',
+        wallet: 'rAliceDemo…x7K2',
+        balance: STORY.depositorStartCash,
+        deposited: 0,
+        vaultPosition: 0,
+        earnedYield: 0
+      }
+    ],
+    borrowers: [
+      {
+        id: 'b-bob',
+        name: "Bob's Construction LLC",
+        wallet: 'rBobDemo…c1N4',
+        requestedAmount: 0,
+        approvedAmount: 0,
+        loanPrincipal: 0,
+        remainingBalance: 0,
+        outstandingPrincipal: 0,
+        interestRate: STORY.apr,
+        termMonths: STORY.termMonths,
+        paymentAmount: STORY.payment,
+        status: 'none',
+        nextPaymentDue: false,
+        purpose: 'Equipment'
+      }
+    ],
+    loans: [],
+    primaryDepositorId: 'd-alice',
+    primaryBorrowerId: 'b-bob',
+    lifecycleStage: 'configure',
+    selectedEntity: null,
+    selectedTerm: null,
+    showAdvancedRoles: false,
+    advancedReveal: 0,
+    distributionPolicy: 'accrue',
+    statusBanner: null,
+    log: ['JRPU classroom vault — start by configuring the lending system.'],
+    pendingAnimations: [],
+    underwritingPhase: 0,
+    riskMode: false,
+    defaultedConnection: false,
+    missedPayment: false,
+    expectedPayment: STORY.payment,
+    receivedPayment: 0,
+    agreementAccepted: false,
+    rulesDefined: false
+  }
+  return applySnapshot(base, step)
+}
+
+export function stateFromSnapshotStep(step: number): SimulationState {
+  return createInitialState(step)
+}
+
+export const DEMO_DEPOSIT = STORY.deposit
+export const DEMO_LOAN = STORY.loan
+export const DEMO_PAYMENT = STORY.payment
+export const DEMO_PRINCIPAL_SHARE = STORY.principalPortion
+export const DEMO_INTEREST_SHARE = STORY.interestPortion
+export const DEMO_YIELD = STORY.interestPortion

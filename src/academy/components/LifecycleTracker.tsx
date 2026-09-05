@@ -4,7 +4,9 @@ export function LifecycleTracker({ stage }: { stage: LifecycleStage }) {
   const idx = LIFECYCLE_STAGES.indexOf(stage)
   return (
     <div className="rounded-xl border border-slate-800 bg-slate-950/60 px-3 py-2 min-w-0">
-      <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1.5">Capital lifecycle</div>
+      <div className="text-[10px] uppercase tracking-wide text-slate-500 mb-1.5">
+        Lending process
+      </div>
 
       <div className="flex flex-wrap gap-1.5 sm:hidden">
         {LIFECYCLE_STAGES.map((s, i) => {
@@ -22,7 +24,7 @@ export function LifecycleTracker({ stage }: { stage: LifecycleStage }) {
                     : 'bg-slate-900 text-slate-500 border border-slate-800')
               }
             >
-              {LIFECYCLE_LABELS[s]}
+              {i + 1}. {LIFECYCLE_LABELS[s]}
             </span>
           )
         })}
@@ -57,7 +59,7 @@ export function LifecycleTracker({ stage }: { stage: LifecycleStage }) {
               {i < LIFECYCLE_STAGES.length - 1 && (
                 <div
                   className={
-                    'h-px flex-1 min-w-[6px] mt-[5px] mx-0.5 ' +
+                    'h-px flex-1 min-w-[4px] mt-[5px] mx-0.5 ' +
                     (done || active ? 'bg-indigo-500/60' : 'bg-slate-700')
                   }
                 />
