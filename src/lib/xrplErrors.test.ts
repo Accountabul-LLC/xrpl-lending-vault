@@ -44,4 +44,11 @@ describe('interpretXrplError', () => {
     expect(g.category).toBe('XRPL TRANSACTION CONSTRUCTION')
     expect(g.meaning.toLowerCase()).toMatch(/integer drops|periodicpayment/)
   })
+
+  it('explains LoanPay tecEXPIRED as a late regular payment (DEVNET-004)', () => {
+    const g = interpretXrplError(new Error('LoanPay failed: tecEXPIRED'), 'LoanPay')
+    expect(g.code).toBe('tecEXPIRED')
+    expect(g.meaning.toLowerCase()).toMatch(/nextpaymentduedate|late/)
+    expect(g.fix.toLowerCase()).toMatch(/tfloanlatepayment|before/)
+  })
 })

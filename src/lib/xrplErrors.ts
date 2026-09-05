@@ -165,6 +165,12 @@ const TX_CODE_OVERRIDES: Record<string, Record<string, Partial<ErrorGuidance>>> 
         'LoanPay Amount is an STAmount and must be integer drops. PeriodicPayment on the Loan object is an STNumber and can have a fractional drop component (for example 8000001.217…). Submitting that fraction is rejected as an illegal amount.',
       fix: 'Round PeriodicPayment up to the next whole drop, then submit that integer as LoanPay Amount.',
       category: 'XRPL TRANSACTION CONSTRUCTION'
+    },
+    tecEXPIRED: {
+      meaning:
+        'A regular (on-time) LoanPay is not allowed after NextPaymentDueDate. Waiting until the due timestamp makes the installment late.',
+      fix: 'Pay before Next Payment Due for a regular installment. If the due time has already passed, resubmit with tfLoanLatePayment (0x00040000). Late payments may also require late interest on top of PeriodicPayment.',
+      category: 'PROTOCOL PRECONDITION'
     }
   },
   LoanSet: {

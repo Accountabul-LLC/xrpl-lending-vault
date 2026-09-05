@@ -35,6 +35,7 @@ import {
   fetchRippleTime,
   fetchVault,
   fundNewWallet,
+  isLoanPayLate,
   listLoans,
   payLoan,
   payRequiredInstallment,
@@ -1051,6 +1052,12 @@ export default function DevnetLab() {
       </StepCard>
 
       <StepCard id={6} status={statuses[6]} wallet="Borrower">
+        <p className="text-xs text-slate-400">
+          Only the borrower on this Loan can submit <code>LoanPay</code>. An on-time (regular)
+          installment must be submitted <strong>before</strong> Next Payment Due. Waiting until that
+          timestamp makes the payment late: a regular LoanPay then returns <code>tecEXPIRED</code>
+          unless <code>tfLoanLatePayment</code> is set.
+        </p>
         <PrereqList checks={checksForStep(6, snapshot)} />
         {loan && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -1058,6 +1065,14 @@ export default function DevnetLab() {
             <Kv label="Next Payment" value={`${loan.periodicPayment} XRP`} />
             <Kv label="Next Due" value={loan.nextPaymentDueIso} />
             <Kv label="Payments Remaining" value={String(loan.paymentRemaining ?? '—')} />
+            <Kv
+              label="Payment type"
+              value={
+                isLoanPayLate(ledgerTime, loan.nextPaymentDueDate)
+                  ? 'LATE — will set tfLoanLatePayment'
+                  : 'REGULAR (on-time)'
+              }
+            />
           </div>
         )}
         <ActionButton

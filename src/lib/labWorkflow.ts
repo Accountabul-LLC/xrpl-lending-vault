@@ -340,7 +340,7 @@ export function nextActionFor(id: StepId, status: StepStatus, s: LabSnapshot): s
     case 5:
       return 'Wait until the investment phase, then have the loan broker sign LoanSet and the borrower cosign.'
     case 6:
-      return 'Submit LoanPay from the borrower for the required periodic payment.'
+      return 'Submit an on-time LoanPay from the borrower before Next Payment Due. Waiting until that timestamp makes the payment late (tecEXPIRED unless tfLoanLatePayment is set).'
     case 7:
       return 'Wait until RedemptionDate, then submit VaultWithdraw from the depositor for an amount ≤ Assets Available.'
     case 8:

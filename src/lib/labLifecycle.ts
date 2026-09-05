@@ -250,10 +250,6 @@ export async function runFullLabLifecycle(
 
   try {
     const before = await fetchLoan(result.loan!.loanId)
-    const due = Number(before.nextPaymentDueDate ?? 0)
-    if (due > 0) {
-      await waitUntilRippleTime(due, 'first payment due (regular LoanPay)')
-    }
     const paid = await payRequiredInstallment(borrower, before)
     const after = paid.loan
     if ((after.paymentRemaining ?? 0) >= (before.paymentRemaining ?? 1)) {

@@ -80,6 +80,17 @@ function renderReport(rows: RunRow[], defects: Defect[], streak: number): string
       rootCause: 'XRPL TRANSACTION CONSTRUCTION',
       fix: 'PeriodicPayment is an STNumber that can include a fractional drop. LoanPay Amount is an STAmount and must be integer drops. roundUpDrops() ceils the ledger value before submit.',
       regressionTest: 'src/lib/amounts.test.ts and src/lib/loanPayAmount.test.ts',
+      retest: 'PASS — amount encoding no longer throws; live payment still requires on-time timing (DEVNET-004)'
+    },
+    {
+      id: 'DEVNET-004',
+      run: 0,
+      step: 'LoanPay',
+      observed:
+        'LoanPay returned tecEXPIRED after the lab waited until NextPaymentDueDate. A regular (unflagged) installment is not allowed once that timestamp is reached.',
+      rootCause: 'PROTOCOL PRECONDITION',
+      fix: 'Submit on-time LoanPay immediately after origination, before NextPaymentDueDate. If ledger time is already past due, set tfLoanLatePayment (0x00040000).',
+      regressionTest: 'src/lib/loanPayAmount.test.ts (isLoanPayLate / loanPayFlags) and src/lib/xrplErrors.test.ts',
       retest: 'Covered by the live consecutive-pass loop'
     }
   ]
@@ -170,7 +181,7 @@ async function main() {
   const defects: Defect[] = []
   let streak = 0
   let attempt = 0
-  let defectN = 4
+  let defectN = 5
 
   while (streak < target && attempt < maxAttempts) {
     attempt += 1

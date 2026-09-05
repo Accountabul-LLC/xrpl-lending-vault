@@ -20,6 +20,8 @@ export const TF_LOAN_IMPAIR = 0x00020000
 export const TF_LOAN_UNIMPAIR = 0x00040000
 export const TF_LOAN_OVERPAYMENT = 0x00010000
 export const TF_LOAN_FULL_PAYMENT = 0x00020000
+/** LoanPay: payment after NextPaymentDueDate. Regular LoanPay returns tecEXPIRED without this flag. */
+export const TF_LOAN_LATE_PAYMENT = 0x00040000
 export const LSF_LOAN_DEFAULT = 0x00010000
 export const LSF_LOAN_IMPAIRED = 0x00020000
 
@@ -602,7 +604,7 @@ export interface LoanInfo {
   totalValueOutstanding: string
   managementFeeOutstanding: string
   interestRate: number
-  nextPaymentDueDate?: string
+  nextPaymentDueDate?: number | string
   nextPaymentDueIso: string
   paymentRemaining?: number
   periodicPayment: string
@@ -624,7 +626,7 @@ function loanFromNode(loanId: string, node: any): LoanInfo {
     totalValueOutstanding: ledgerAmountToXrp(node.TotalValueOutstanding ?? '0'),
     managementFeeOutstanding: ledgerAmountToXrp(node.ManagementFeeOutstanding ?? '0'),
     interestRate: node.InterestRate,
-    nextPaymentDueDate: node.NextPaymentDueDate,
+    nextPaymentDueDate: node.NextPaymentDueDate != null ? Number(node.NextPaymentDueDate) : undefined,
     nextPaymentDueIso: (() => {
       const n = Number(node.NextPaymentDueDate)
       if (!Number.isFinite(n) || n <= 0) return '—'
@@ -755,6 +757,22 @@ export async function createLoan(
   }
 }
 
+export function isLoanPayLate(
+  nowRippleTime: number,
+  nextPaymentDueDate?: number | string | null
+): boolean {
+  const due = Number(nextPaymentDueDate ?? 0)
+  return Number.isFinite(due) && due > 0 && nowRippleTime >= due
+}
+
+/** Regular LoanPay is rejected with tecEXPIRED once NextPaymentDueDate has been reached. */
+export function loanPayFlags(
+  nowRippleTime: number,
+  nextPaymentDueDate?: number | string | null
+): number {
+  return isLoanPayLate(nowRippleTime, nextPaymentDueDate) ? TF_LOAN_LATE_PAYMENT : 0
+}
+
 export async function payLoan(
   payer: Wallet,
   loanId: string,
@@ -784,7 +802,9 @@ export async function payRequiredInstallment(payer: Wallet, loan: LoanInfo) {
   if (!amount || amount === '0') {
     throw new XrplLabError('LoanPay', 'Loan has no PeriodicPayment on the ledger')
   }
-  return payLoanDrops(payer, loan.loanId, amount, 0)
+  const now = await fetchRippleTime()
+  const flags = loanPayFlags(now, loan.nextPaymentDueDate)
+  return payLoanDrops(payer, loan.loanId, amount, flags)
 }
 
 export async function payLoanFull(payer: Wallet, loanId: string, amountXrp: string) {
