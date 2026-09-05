@@ -2,6 +2,13 @@
 
 Layout-engineer pass. No branding, color, or copy rewrite.
 
+> **Integration note.** This log describes the `cursor/ui-layout-engineer-fea1` branch as
+> authored against the pre-full-width Academy. When it was integrated with main's full-width
+> workstation (#5) and the Institutional track (#4), some items below were superseded or
+> combined; see `INTEGRATION_REPORT.md` and `MERGE_CONFLICT_REPORT.md` for the final state.
+> In particular: the Academy grid, the lesson-0 roles table, the `max-w-[100rem]` shell, and
+> the canvas heights were reconciled with main rather than applied verbatim.
+
 ## Skill
 
 - Added `skills/ui-layout-engineer/SKILL.md` so future agents can run the same Understand → Inspect → Fix → Test loop.

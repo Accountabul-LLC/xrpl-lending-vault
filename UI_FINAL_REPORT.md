@@ -4,6 +4,11 @@
 **Date:** 2026-09-04  
 **Product:** JRPU Lending Academy and Live Devnet Lab  
 
+> **Integration note.** This report was written on the layout branch before it was combined with
+> main's full-width Academy workstation and the Institutional track. The integrated result was
+> re-scanned (both tracks, Lab, 9 viewports, scrolled and unscrolled, real-zoom-equivalent
+> viewports) with zero overlaps; see `INTEGRATION_REPORT.md` for the post-merge verification.
+
 ## Result
 
 The interface no longer depends on shrinking browser zoom to fit a laptop, and the Academy visualization no longer fights the lesson list for the same pixels.
