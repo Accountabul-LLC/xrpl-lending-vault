@@ -136,7 +136,7 @@ export class LendingNetworkScene {
   private pipes: PipeBundle[] = []
   private particles: Particle[] = []
   private advancedGroups: THREE.Group[] = []
-  private clock = new THREE.Clock()
+  private timer = new THREE.Timer()
   private raf = 0
   private disposed = false
   private reducedMotion = false
@@ -474,17 +474,18 @@ export class LendingNetworkScene {
 
   private start() {
     cancelAnimationFrame(this.raf)
-    const loop = () => {
+    const loop = (timestamp: number) => {
       if (this.disposed) return
       this.raf = requestAnimationFrame(loop)
       if (!this.visible) return
+      this.timer.update(timestamp)
       this.tick()
     }
     this.raf = requestAnimationFrame(loop)
   }
 
   private tick() {
-    const dt = Math.min(0.05, this.clock.getDelta())
+    const dt = Math.min(0.05, this.timer.getDelta())
     this.ambientPulse += dt
 
     // Camera lerp
@@ -564,6 +565,7 @@ export class LendingNetworkScene {
   dispose() {
     this.disposed = true
     cancelAnimationFrame(this.raf)
+    this.timer.dispose()
     this.resizeObserver?.disconnect()
     this.resizeObserver = null
     window.removeEventListener('resize', this.onResize)
