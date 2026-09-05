@@ -91,7 +91,7 @@ function renderReport(rows: RunRow[], defects: Defect[], streak: number): string
       rootCause: 'PROTOCOL PRECONDITION',
       fix: 'Submit on-time LoanPay immediately after origination, before NextPaymentDueDate. If ledger time is already past due, set tfLoanLatePayment (0x00040000).',
       regressionTest: 'src/lib/loanPayAmount.test.ts (isLoanPayLate / loanPayFlags) and src/lib/xrplErrors.test.ts',
-      retest: 'Covered by the live consecutive-pass loop'
+      retest: 'PASS — 20 consecutive live DevNet runs paid on time before NextPaymentDueDate'
     }
   ]
   const allDefects = [

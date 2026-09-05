@@ -454,10 +454,14 @@ export default function DevnetLab() {
       setFailedStep(4)
       setErrors((e) => ({
         ...e,
-        4: interpretXrplError(
-          'LoanBroker not created. The Protocol Loan Book is a Lab view of loans on an XRPL LoanBroker. Create the LoanBroker first.',
-          'Protocol Loan Book'
-        )
+        4: {
+          code: 'LoanBroker not created',
+          meaning:
+            'The Protocol Loan Book is a Lab view of loans associated with an XRPL LoanBroker. It is not itself a ledger object. Nothing was submitted to DevNet.',
+          fix: 'Create the Loan Broker first (step 4, LoanBrokerSet signed by the vault owner), then originate a loan. This panel will list those loans.',
+          category: 'INVALID STATE',
+          whatFailed: 'Protocol Loan Book'
+        }
       }))
       document.getElementById('lab-step-4')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
       return
