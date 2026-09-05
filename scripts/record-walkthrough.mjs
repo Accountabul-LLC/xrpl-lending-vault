@@ -34,10 +34,18 @@ async function waitForPort(url, ms = 60_000) {
   throw new Error(`Timeout waiting for ${url}`)
 }
 
-const preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173'], {
-  cwd: ROOT,
-  stdio: 'inherit'
-})
+const previewUrl = 'http://127.0.0.1:4173'
+let preview = null
+try {
+  await waitForPort(previewUrl, 1500)
+  console.log('using existing preview on 4173')
+} catch {
+  preview = spawn('npm', ['run', 'preview', '--', '--host', '127.0.0.1', '--port', '4173'], {
+    cwd: ROOT,
+    stdio: 'inherit'
+  })
+  await waitForPort(previewUrl)
+}
 
 try {
   await waitForPort('http://127.0.0.1:4173')
@@ -97,5 +105,5 @@ try {
   await run('cp', [PUBLIC_MP4, path.join(ARTIFACTS, 'accountabul_lending_lab_walkthrough.mp4')])
   console.log('wrote', PUBLIC_MP4)
 } finally {
-  preview.kill('SIGTERM')
+  if (preview) preview.kill('SIGTERM')
 }
