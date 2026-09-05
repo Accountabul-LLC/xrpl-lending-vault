@@ -550,8 +550,10 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
           <p className="text-xs text-slate-400 mt-1 max-w-4xl">{lessonBlurb[lesson]}</p>
         </header>
 
-        {/* Visualization + advanced roles side panel */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] gap-3 min-h-0">
+        {/* Visualization + advanced roles side panel. shrink-0: inside the fixed-height,
+            scrollable workspace a shrinkable grid gets compressed and its content spills
+            over the rows below it. */}
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(220px,280px)] gap-3 shrink-0">
           <div className="min-w-0 flex flex-col gap-2">
             <LendingPipelineCanvas lesson={lesson} reduceMotionOverride={reduceMotion} />
             <LifecycleTracker stage={sim.state.lifecycleStage} />
@@ -560,7 +562,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
         </div>
 
         {/* Supporting content: lesson copy + entity inspector */}
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(240px,320px)] gap-3 items-start">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(240px,320px)] gap-3 items-start shrink-0">
           <div className="min-w-0">
             <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
           </div>
