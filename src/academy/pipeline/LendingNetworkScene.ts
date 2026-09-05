@@ -212,6 +212,9 @@ export class LendingNetworkScene {
     const sprite = createNameSprite(label, tint)
     if (labelY != null) sprite.position.y = labelY
     group.add(sprite)
+    if (id === 'depositor') mesh.rotation.y = Math.PI / 2
+    if (id === 'borrower') mesh.rotation.y = -Math.PI / 2
+    if (id === 'administrator') mesh.rotation.y = 0.45
     this.scene.add(group)
     this.actors.set(id, { group })
   }
@@ -227,7 +230,7 @@ export class LendingNetworkScene {
 
   private makeRulesBoard(): THREE.Group {
     const g = new THREE.Group()
-    g.position.set(-1.85, 1.35, -1.85)
+    g.position.set(-1.55, 1.45, -2.85)
     const board = new THREE.Mesh(
       new THREE.BoxGeometry(1.5, 0.95, 0.06),
       new THREE.MeshStandardMaterial({ color: 0x1e1b4b, metalness: 0.2, roughness: 0.5 })
@@ -247,6 +250,16 @@ export class LendingNetworkScene {
   setLesson(lesson: number) {
     this.lesson = lesson
     this.focus = new Set(lessonFocusEntities(lesson))
+    this.clearTransfers()
+  }
+
+  private clearTransfers() {
+    this.particles.forEach((p) => {
+      this.scene.remove(p.mesh)
+      disposeObject3D(p.mesh)
+    })
+    this.particles = []
+    this.animatingIds.clear()
   }
 
   setAdvancedVisible(show: boolean) {

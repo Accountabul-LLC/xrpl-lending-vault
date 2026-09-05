@@ -44,7 +44,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: 'The administrator sets vault limits, the permitted asset, deposit rules, and borrowing parameters.',
     why: 'Loans can only happen after someone has defined the rules the vault must follow.',
     focus: ['administrator', 'protocol'],
-    camera: { position: [0, 3.4, 9.2], lookAt: [0, 1.4, -1.4] }
+    camera: { position: [3.6, 3.6, 4.8], lookAt: [0.6, 1.15, -2.6] }
   },
   {
     id: 2,
@@ -53,7 +53,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: 'The administrator applies those rules to a real lending vault — a secure pool that will hold depositor capital.',
     why: 'The vault is the treasury. It is not a person and depositors do not own it.',
     focus: ['administrator', 'vault', 'protocol'],
-    camera: { position: [0.2, 2.6, 8.4], lookAt: [0, 0.9, 0] }
+    camera: { position: [2.4, 3.2, 7.2], lookAt: [0.2, 0.95, -0.4] }
   },
   {
     id: 3,

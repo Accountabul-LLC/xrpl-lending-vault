@@ -1,71 +1,14 @@
-# UI Final Report — JRPU Lending Protocol
+# UI Final Report — Lending Academy v2
 
-**Engagement:** Deep UI audit + structural layout repair  
-**Date:** 2026-09-04  
-**Product:** JRPU Lending Academy and Live Devnet Lab  
+The Academy no longer depends on abstract nodes. At 100% zoom the eight lessons remain visible, the 10-step controls stay on screen, and the WHO / WHAT / WHY panel explains the active step.
 
-> **Integration note.** This report was written on the layout branch before it was combined with
-> main's full-width Academy workstation and the Institutional track. The integrated result was
-> re-scanned (both tracks, Lab, 9 viewports, scrolled and unscrolled, real-zoom-equivalent
-> viewports) with zero overlaps; see `INTEGRATION_REPORT.md` for the post-merge verification.
+Browser verification (computer-use, localhost:5173):
 
-## Result
+- Lesson 1 loads with Step 1 of 10, Play/Pause/Next, people + vault, information panel
+- Play advances steps and updates WHO / WHAT / WHY
+- Lesson 7 missed payment shows Expected $1,750.00 / Received $0.00
+- Lesson 8 sandbox exposes Configure / Deposit / Request / Approve / Fund / Pay / Miss / Withdraw
+- Institutional track still renders
+- 375px uses numbered lesson chips; controls remain reachable
 
-The interface no longer depends on shrinking browser zoom to fit a laptop, and the Academy visualization no longer fights the lesson list for the same pixels.
-
-Nothing important was hidden to make the page “fit.” Branding, copy, lesson order, and the three-party hierarchy are unchanged.
-
-## What was broken
-
-The layout mixed a **fixed-height WebGL stage**, a **sidebar that only existed above 1024px**, and **flex/grid children without `min-width: 0`**. That produced:
-
-- Lesson navigation stacked on top of the teaching surface on tablets and phones
-- Header overflow at 320px
-- Canvas / labels spilling into the lesson column (previously papered over with `z-20`)
-- A 520px-tall scene that consumed a 768px-tall laptop before lesson copy appeared
-- Nested horizontal scroll on the lifecycle tracker
-- Lab actions overflowing their cards
-
-## What changed (layout model, not a redesign)
-
-1. **Tracks that can shrink:** `minmax(0, 1fr)` for workspace; `minmax(13rem, 15rem)` for the lesson rail.
-2. **One scroll context:** page scroll plus compact mobile lesson chips; no extra sidebar scroller for eight items.
-3. **Canvas follows its frame:** `ResizeObserver`, viewport-relative height, and a CSS flex HUD so protocol / vault / party labels cannot occupy the same pixels.
-4. **Forms stack when the card is narrow:** Lab cover / origination / repayment.
-5. **Z-index is a scale**, not a patch: header 20, sidebar 10, banner 15, popover 40.
-
-Overlap retest (Playwright bounding boxes): 0 intersecting HUD regions, header buttons, lesson nav, or sidebar-vs-canvas pairs across 320–1920, lessons 1/2/4/5, Lab, and 100–200% zoom.
-
-## Severity roll-up
-
-| Severity | Count | Open |
-|---|---|---|
-| Critical | 0 | 0 |
-| High | 6 | 0 |
-| Medium | 4 | 0 |
-| Low | 2 | 0 (residual fallback inner scroll only when needed) |
-| Informational | 1 | 0 (contained table scroll accepted) |
-
-## Verification matrix
-
-Widths: 320, 375, 430, 768, 1024, 1280, 1366, 1440, 1600, 1920  
-Heights: 667, 768, 900, 1080  
-Zoom: 100% (primary), 150% / 200% for text wrap  
-
-Primary workflows still available:
-
-- Switch Academy ↔ Lab
-- Open every lesson
-- Read visualization + copy at 100% zoom on 1366×768
-- Inspect an entity
-- Advance Previous / Next
-- Use Lab wallet / vault / loan controls without clipping
-
-## Remaining / accepted
-
-- Lesson 1 roles use stacked cards below `sm` instead of a squeezed four-column table (UI-011).
-- 2D WebGL fallback may scroll **inside the canvas frame** if zoomed text exceeds the viewport-relative height (UI-012). Lesson controls below stay reachable.
-
-## Stop condition
-
-Met: overlaps addressed, core controls accessible, standard desktops work at 100% zoom, nested scrollbars removed where they were not needed, residual issues documented.
+Open/accepted: sandbox extras may scroll on short laptops so the world and info panel stay visible (UI-203).

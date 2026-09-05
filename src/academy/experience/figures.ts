@@ -177,22 +177,39 @@ export function createVault(): THREE.Group {
   trimInner.position.y = 0.93
   g.add(trim, trimInner)
 
-  const door = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.1, 28), goldMat)
+  const door = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.12, 32), goldMat)
   door.rotation.x = Math.PI / 2
-  door.position.set(0, 0.95, 0.68)
+  door.position.set(0, 0.95, 0.7)
   g.add(door)
 
-  const dial = new THREE.Mesh(
-    new THREE.TorusGeometry(0.22, 0.035, 8, 24),
-    std(0xf8fafc, { metalness: 0.7, roughness: 0.25 })
+  const doorPlate = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.48, 0.48, 0.04, 32),
+    std(0x1e293b, { metalness: 0.75, roughness: 0.3 })
   )
-  dial.position.set(0, 0.95, 0.74)
+  doorPlate.rotation.x = Math.PI / 2
+  doorPlate.position.set(0, 0.95, 0.77)
+  g.add(doorPlate)
+
+  const dial = new THREE.Mesh(
+    new THREE.TorusGeometry(0.26, 0.045, 8, 28),
+    std(0xf8fafc, { metalness: 0.75, roughness: 0.22 })
+  )
+  dial.position.set(0, 0.95, 0.8)
   g.add(dial)
 
-  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.08, 12), std(0xe2e8f0, { metalness: 0.8 }))
+  const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.1, 12), std(0xe2e8f0, { metalness: 0.85 }))
   hub.rotation.x = Math.PI / 2
-  hub.position.set(0, 0.95, 0.76)
+  hub.position.set(0, 0.95, 0.82)
   g.add(hub)
+
+  const spokeGeom = new THREE.BoxGeometry(0.42, 0.04, 0.04)
+  const spokeMat = std(0xe2e8f0, { metalness: 0.8 })
+  for (const angle of [0, Math.PI / 2]) {
+    const spoke = new THREE.Mesh(spokeGeom, spokeMat)
+    spoke.position.set(0, 0.95, 0.81)
+    spoke.rotation.z = angle
+    g.add(spoke)
+  }
 
   const fill = new THREE.Mesh(
     new THREE.BoxGeometry(1.15, 1.05, 0.7),

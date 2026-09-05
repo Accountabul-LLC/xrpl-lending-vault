@@ -35,18 +35,18 @@ export const COLORS = {
  *                       └──── Repayment ────────┘
  */
 export const ENTITY_POSITIONS: Record<EntityId, [number, number, number]> = {
-  protocol: [0, 0, -3.35],
-  administrator: [0, 0, -1.85],
-  vault: [0, 0, 0.15],
-  depositor: [-4.35, 0, 0.35],
-  borrower: [4.35, 0, 0.35],
-  agreement: [2.55, 0, 1.15],
-  originator: [3.15, 0, -1.85],
-  underwriter: [1.55, 0, -2.55],
-  broker: [3.85, 0, 2.05],
-  guarantor: [5.35, 0, -1.15],
-  custodian: [-5.25, 0, -1.25],
-  servicer: [0, 0, 2.55]
+  protocol: [0, 0, -4.15],
+  administrator: [1.55, 0, -2.55],
+  vault: [0, 0, 0.2],
+  depositor: [-4.55, 0, 0.45],
+  borrower: [4.55, 0, 0.45],
+  agreement: [2.65, 0, 1.25],
+  originator: [3.35, 0, -1.95],
+  underwriter: [0.35, 0, -2.75],
+  broker: [3.95, 0, 2.15],
+  guarantor: [5.55, 0, -1.15],
+  custodian: [-5.35, 0, -1.25],
+  servicer: [0, 0, 2.65]
 }
 
 export type CameraPreset = {
@@ -56,14 +56,14 @@ export type CameraPreset = {
 }
 
 export const LESSON_CAMERAS: Record<number, CameraPreset> = {
-  0: { position: [0, 3.6, 12.2], lookAt: [0, 0.7, 0] },
-  1: { position: [0.3, 2.8, 8.4], lookAt: [0, 0.9, 0] },
-  2: { position: [-3.4, 2.6, 8.8], lookAt: [-1.6, 0.6, 0] },
-  3: { position: [3.2, 2.6, 8.8], lookAt: [1.6, 0.6, 0] },
-  4: { position: [2.8, 2.4, 8], lookAt: [1.8, 0.9, 0.4] },
-  5: { position: [0, 3.4, 11.6], lookAt: [0, 0.6, 0] },
-  6: { position: [1.8, 3, 10.4], lookAt: [0.8, 0.5, 0] },
-  7: { position: [0, 4, 13], lookAt: [0, 0.5, 0] }
+  0: { position: [6.4, 7.2, 10.2], lookAt: [0, 0.5, -0.4] },
+  1: { position: [1.8, 3.4, 7.4], lookAt: [0.4, 1.0, -1.6] },
+  2: { position: [-4.0, 3.0, 8.6], lookAt: [-1.8, 0.7, 0.2] },
+  3: { position: [4.0, 3.0, 8.6], lookAt: [1.8, 0.7, 0.2] },
+  4: { position: [3.2, 2.8, 7.6], lookAt: [2.0, 1.0, 0.5] },
+  5: { position: [6.2, 6.8, 10], lookAt: [0, 0.5, 0] },
+  6: { position: [3.2, 3.4, 9.4], lookAt: [1.2, 0.6, 0.2] },
+  7: { position: [6.8, 7.4, 11], lookAt: [0, 0.4, 0] }
 }
 
 export const FLOW_COLORS: Record<FlowKind, number> = {
@@ -99,6 +99,9 @@ export function lessonFocusEntities(lesson: number): EntityId[] {
 }
 
 export function cameraForStep(step: number, lesson: number): CameraPreset {
+  if (lesson === 0 || lesson === 5 || lesson === 7) {
+    return LESSON_CAMERAS[lesson] ?? LESSON_CAMERAS[0]
+  }
   const story = STORY_STEPS[step - 1]
   if (story) return story.camera
   return LESSON_CAMERAS[lesson] ?? LESSON_CAMERAS[0]
