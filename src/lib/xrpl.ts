@@ -1,5 +1,7 @@
 import * as xrplLib from 'xrpl'
 import { Client, Wallet, convertStringToHex, dropsToXrp, xrpToDrops } from 'xrpl'
+import { XrplLabError } from '../lab/errors'
+import { receiptFrom, type TxReceipt } from '../lab/receipt'
 
 // decode / signLoanSetByCounterparty are part of the XLS-66 lending-protocol
 // API surface added to xrpl.js ahead of full type coverage for the
@@ -60,7 +62,7 @@ export async function createVault(
   const result = await client.submitAndWait(signed.tx_blob)
   const meta: any = result.result.meta
   if (meta?.TransactionResult !== 'tesSUCCESS') {
-    throw new Error(`VaultCreate failed: ${meta?.TransactionResult}`)
+    throw new XrplLabError('VaultCreate', meta?.TransactionResult ?? 'tecFAILED')
   }
   const created = (meta.AffectedNodes || []).find(
     (n: any) => n.CreatedNode?.LedgerEntryType === 'Vault'
@@ -68,7 +70,8 @@ export async function createVault(
   return {
     vaultId: created?.CreatedNode?.LedgerIndex as string,
     shareMptId: created?.CreatedNode?.NewFields?.ShareMPTID as string,
-    account: created?.CreatedNode?.NewFields?.Account as string
+    account: created?.CreatedNode?.NewFields?.Account as string,
+    receipt: receiptFrom(result, 'VaultCreate')
   }
 }
 
@@ -85,9 +88,9 @@ export async function depositVault(depositor: Wallet, vaultId: string, amountXrp
   const result = await client.submitAndWait(signed.tx_blob)
   const meta: any = result.result.meta
   if (meta?.TransactionResult !== 'tesSUCCESS') {
-    throw new Error(`VaultDeposit failed: ${meta?.TransactionResult}`)
+    throw new XrplLabError('VaultDeposit', meta?.TransactionResult ?? 'tecFAILED')
   }
-  return result
+  return { result, receipt: receiptFrom(result, 'VaultDeposit') }
 }
 
 export async function withdrawVault(holder: Wallet, vaultId: string, amountXrp: string) {
@@ -103,9 +106,9 @@ export async function withdrawVault(holder: Wallet, vaultId: string, amountXrp: 
   const result = await client.submitAndWait(signed.tx_blob)
   const meta: any = result.result.meta
   if (meta?.TransactionResult !== 'tesSUCCESS') {
-    throw new Error(`VaultWithdraw failed: ${meta?.TransactionResult}`)
+    throw new XrplLabError('VaultWithdraw', meta?.TransactionResult ?? 'tecFAILED')
   }
-  return result
+  return { result, receipt: receiptFrom(result, 'VaultWithdraw') }
 }
 
 export async function fetchVault(vaultId: string): Promise<VaultInfo> {
@@ -142,9 +145,9 @@ async function submitSigned(wallet: Wallet, tx: any, label: string) {
   const result = await client.submitAndWait(signed.tx_blob)
   const meta: any = result.result.meta
   if (meta?.TransactionResult !== 'tesSUCCESS') {
-    throw new Error(`${label} failed: ${meta?.TransactionResult}`)
+    throw new XrplLabError(label, meta?.TransactionResult ?? 'tecFAILED')
   }
-  return { result, meta }
+  return { result, meta, receipt: receiptFrom(result, label) as TxReceipt }
 }
 
 export const TF_LOAN_DEFAULT = 0x00010000
@@ -181,12 +184,15 @@ export async function createLoanBroker(
   const result = await client.submitAndWait(signed.tx_blob)
   const meta: any = result.result.meta
   if (meta?.TransactionResult !== 'tesSUCCESS') {
-    throw new Error(`LoanBrokerSet failed: ${meta?.TransactionResult}`)
+    throw new XrplLabError('LoanBrokerSet', meta?.TransactionResult ?? 'tecFAILED')
   }
   const created = (meta.AffectedNodes || []).find(
     (n: any) => n.CreatedNode?.LedgerEntryType === 'LoanBroker'
   )
-  return { loanBrokerId: created?.CreatedNode?.LedgerIndex as string }
+  return {
+    loanBrokerId: created?.CreatedNode?.LedgerIndex as string,
+    receipt: receiptFrom(result, 'LoanBrokerSet')
+  }
 }
 
 export async function depositCover(funder: Wallet, loanBrokerId: string, amountXrp: string) {
@@ -202,9 +208,9 @@ export async function depositCover(funder: Wallet, loanBrokerId: string, amountX
   const result = await client.submitAndWait(signed.tx_blob)
   const meta: any = result.result.meta
   if (meta?.TransactionResult !== 'tesSUCCESS') {
-    throw new Error(`LoanBrokerCoverDeposit failed: ${meta?.TransactionResult}`)
+    throw new XrplLabError('LoanBrokerCoverDeposit', meta?.TransactionResult ?? 'tecFAILED')
   }
-  return result
+  return { result, receipt: receiptFrom(result, 'LoanBrokerCoverDeposit') }
 }
 
 export async function withdrawCover(owner: Wallet, loanBrokerId: string, amountXrp: string) {
@@ -258,12 +264,15 @@ export async function createLoan(
   const result = await client.submitAndWait(fullySigned.tx)
   const meta: any = result.result.meta
   if (meta?.TransactionResult !== 'tesSUCCESS') {
-    throw new Error(`LoanSet failed: ${meta?.TransactionResult}`)
+    throw new XrplLabError('LoanSet', meta?.TransactionResult ?? 'tecFAILED')
   }
   const created = (meta.AffectedNodes || []).find(
     (n: any) => n.CreatedNode?.LedgerEntryType === 'Loan'
   )
-  return { loanId: created?.CreatedNode?.LedgerIndex as string }
+  return {
+    loanId: created?.CreatedNode?.LedgerIndex as string,
+    receipt: receiptFrom(result, 'LoanSet')
+  }
 }
 
 export async function payLoan(payer: Wallet, loanId: string, amountXrp: string, full = false) {
@@ -280,9 +289,9 @@ export async function payLoan(payer: Wallet, loanId: string, amountXrp: string, 
   const result = await client.submitAndWait(signed.tx_blob)
   const meta: any = result.result.meta
   if (meta?.TransactionResult !== 'tesSUCCESS') {
-    throw new Error(`LoanPay failed: ${meta?.TransactionResult}`)
+    throw new XrplLabError('LoanPay', meta?.TransactionResult ?? 'tecFAILED')
   }
-  return result
+  return { result, receipt: receiptFrom(result, 'LoanPay') }
 }
 
 export async function payLoanFull(payer: Wallet, loanId: string, amountXrp: string) {

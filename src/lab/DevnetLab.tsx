@@ -12,23 +12,28 @@ import {
   createLoan,
   payLoan,
   payLoanFull,
-  manageLoan,
-  deleteLoan,
   fetchLoan,
   fetchLoanBroker,
-  TF_LOAN_DEFAULT,
-  TF_LOAN_IMPAIR,
-  TF_LOAN_UNIMPAIR,
   type VaultInfo,
   type LoanInfo,
   type LoanBrokerInfo
 } from '../lib/xrpl'
-import { Btn, Card, Stat } from '../ui'
-
-type Role = 'owner' | 'depositor' | 'borrower'
+import { explainXrplError, parseXrplCode } from './errors'
+import { LabWorkbench } from './LabWorkbench'
+import type { TxPhase, TxReceipt } from './receipt'
+import {
+  EMPTY_WALLETS,
+  ROLE_LABEL,
+  ROLES,
+  shortAddr,
+  type LabError,
+  type LabViewHandlers,
+  type LabViewState,
+  type Role,
+  type WalletView
+} from './types'
 
 const STORAGE_KEY = 'jrpu-devnet-session'
-const ROLES: Role[] = ['owner', 'depositor', 'borrower']
 
 type Session = {
   seeds: Partial<Record<Role, string>>
@@ -37,7 +42,7 @@ type Session = {
   loanId: string
 }
 
-function emptyWallets(): Record<Role, Wallet | null> {
+function emptyWalletRecord(): Record<Role, Wallet | null> {
   return { owner: null, depositor: null, borrower: null }
 }
 
@@ -58,7 +63,7 @@ function loadSession(): Session {
 }
 
 function walletsFromSeeds(seeds: Partial<Record<Role, string>>): Record<Role, Wallet | null> {
-  const next = emptyWallets()
+  const next = emptyWalletRecord()
   for (const role of ROLES) {
     const seed = seeds[role]
     if (!seed) continue
@@ -71,44 +76,52 @@ function walletsFromSeeds(seeds: Partial<Record<Role, string>>): Record<Role, Wa
   return next
 }
 
-const ROLE_LABEL: Record<Role, string> = {
-  owner: 'Protocol operator',
-  depositor: 'Depositor',
-  borrower: 'Borrower'
+function toView(w: Wallet | null): WalletView {
+  if (!w) return null
+  return { address: w.address, funded: true }
 }
 
-function short(addr?: string) {
-  if (!addr) return '—'
-  return `${addr.slice(0, 6)}…${addr.slice(-4)}`
-}
-
-export default function DevnetLab() {
+export default function DevnetLab({ onOpenWalkthrough }: { onOpenWalkthrough?: () => void }) {
   const [session] = useState(loadSession)
   const [wallets, setWallets] = useState<Record<Role, Wallet | null>>(() =>
     walletsFromSeeds(session.seeds)
   )
   const [busy, setBusy] = useState<string | null>(null)
+  const [txPhase, setTxPhase] = useState<TxPhase | null>(null)
   const [log, setLog] = useState<string[]>([])
   const [vaultId, setVaultId] = useState(session.vaultId)
   const [vault, setVault] = useState<VaultInfo | null>(null)
   const [assetsMaximum, setAssetsMaximum] = useState('250000')
   const [depositAmount, setDepositAmount] = useState('20')
   const [withdrawAmount, setWithdrawAmount] = useState('5')
-
   const [loanBrokerId, setLoanBrokerId] = useState(session.loanBrokerId)
   const [loanBroker, setLoanBroker] = useState<LoanBrokerInfo | null>(null)
   const [coverAmount, setCoverAmount] = useState('10')
   const [coverWithdrawAmount, setCoverWithdrawAmount] = useState('1')
-
   const [principal, setPrincipal] = useState('10')
   const [aprPercent, setAprPercent] = useState('37')
   const [paymentTotal, setPaymentTotal] = useState('12')
   const [loanId, setLoanId] = useState(session.loanId)
   const [loan, setLoan] = useState<LoanInfo | null>(null)
   const [paymentAmount, setPaymentAmount] = useState('2')
+  const [sharesIssued, setSharesIssued] = useState('—')
+  const [depositorAssetBalance, setDepositorAssetBalance] = useState('—')
+  const [lastTx, setLastTx] = useState<TxReceipt | null>(null)
+  const [error, setError] = useState<LabError | null>(null)
+  const [technicalOpen, setTechnicalOpen] = useState(false)
+  const [brokerSigned, setBrokerSigned] = useState(false)
+  const [borrowerSigned, setBorrowerSigned] = useState(false)
 
   function pushLog(msg: string) {
     setLog((l) => [`${new Date().toLocaleTimeString()}  ${msg}`, ...l].slice(0, 30))
+  }
+
+  function fail(e: unknown) {
+    const raw = e instanceof Error ? e.message : String(e)
+    const hint = explainXrplError(raw)
+    const title = parseXrplCode(raw) ? `${hint.code}` : 'Transaction failed'
+    setError({ ...hint, title, raw })
+    pushLog(`ERROR ${hint.code}: ${raw}`)
   }
 
   useEffect(() => {
@@ -130,7 +143,8 @@ export default function DevnetLab() {
           const info = await fetchVault(restoredVaultId)
           if (!cancelled) {
             setVault(info)
-            pushLog(`Restored vault ${short(restoredVaultId)}`)
+            setSharesIssued(info.shareMptId ? 'Issued (MPT)' : '—')
+            pushLog(`Restored vault ${shortAddr(restoredVaultId)}`)
           }
         } catch (e: any) {
           if (!cancelled) pushLog(`ERROR restoring vault: ${e.message ?? e}`)
@@ -141,7 +155,7 @@ export default function DevnetLab() {
           const info = await fetchLoanBroker(restoredBrokerId)
           if (!cancelled) {
             setLoanBroker(info)
-            pushLog(`Restored protocol loan book ${short(restoredBrokerId)}`)
+            pushLog(`Restored protocol loan book ${shortAddr(restoredBrokerId)}`)
           }
         } catch (e: any) {
           if (!cancelled) pushLog(`ERROR restoring loan book: ${e.message ?? e}`)
@@ -152,7 +166,9 @@ export default function DevnetLab() {
           const info = await fetchLoan(restoredLoanId)
           if (!cancelled) {
             setLoan(info)
-            pushLog(`Restored loan ${short(restoredLoanId)}`)
+            setBrokerSigned(true)
+            setBorrowerSigned(true)
+            pushLog(`Restored loan ${shortAddr(restoredLoanId)}`)
           }
         } catch (e: any) {
           if (!cancelled) pushLog(`ERROR restoring loan: ${e.message ?? e}`)
@@ -166,22 +182,31 @@ export default function DevnetLab() {
 
   function clearSession() {
     localStorage.removeItem(STORAGE_KEY)
-    setWallets(emptyWallets())
+    setWallets(emptyWalletRecord())
     setVaultId('')
     setVault(null)
     setLoanBrokerId('')
     setLoanBroker(null)
     setLoanId('')
     setLoan(null)
-    pushLog('Session cleared')
+    setLastTx(null)
+    setError(null)
+    setSharesIssued('—')
+    setBrokerSigned(false)
+    setBorrowerSigned(false)
+    setTechnicalOpen(false)
+    pushLog('Session cleared. Validated DevNet transactions remain on the ledger.')
   }
 
   async function run(key: string, fn: () => Promise<void>) {
     setBusy(key)
+    setError(null)
+    setTxPhase('preparing')
     try {
       await fn()
     } catch (e: any) {
-      pushLog(`ERROR: ${e.message ?? e}`)
+      setTxPhase(null)
+      fail(e)
     } finally {
       setBusy(null)
     }
@@ -189,414 +214,268 @@ export default function DevnetLab() {
 
   async function fundRole(role: Role) {
     await run(`fund-${role}`, async () => {
+      setTxPhase('submitting')
       const w = await fundNewWallet()
+      setTxPhase('validating')
       setWallets((prev) => ({ ...prev, [role]: w }))
-      pushLog(`Funded ${ROLE_LABEL[role]} wallet ${short(w.address)}`)
+      setTxPhase('confirmed')
+      pushLog(`Funded ${ROLE_LABEL[role]} wallet ${shortAddr(w.address)} — verified on DevNet`)
+    })
+  }
+
+  async function fundAll() {
+    await run('fund-all', async () => {
+      for (const role of ROLES) {
+        if (wallets[role]) continue
+        setTxPhase('submitting')
+        const w = await fundNewWallet()
+        setWallets((prev) => ({ ...prev, [role]: w }))
+        pushLog(`Funded ${ROLE_LABEL[role]} wallet ${shortAddr(w.address)} — verified on DevNet`)
+      }
+      setTxPhase('confirmed')
     })
   }
 
   async function handleCreateVault() {
     if (!wallets.owner) return
     await run('create-vault', async () => {
-      const { vaultId: id } = await createVault(wallets.owner!, {
+      setTxPhase('signing')
+      setTxPhase('submitting')
+      const created = await createVault(wallets.owner!, {
         assetsMaximumXrp: assetsMaximum,
-        data: 'JRPU Lending Protocol devnet test vault'
+        data: 'Accountabul / JRPU Lending Protocol DevNet test vault'
       })
-      setVaultId(id)
-      pushLog(`VaultCreate ok — VaultID ${short(id)}`)
-      setVault(await fetchVault(id))
+      setTxPhase('validating')
+      setVaultId(created.vaultId)
+      setLastTx(created.receipt)
+      pushLog(`VaultCreate ${created.receipt.result} — VaultID ${shortAddr(created.vaultId)}`)
+      const info = await fetchVault(created.vaultId)
+      setVault(info)
+      setSharesIssued('0')
+      setTxPhase('confirmed')
     })
   }
 
   async function handleRefreshVault() {
     if (!vaultId) return
     await run('refresh-vault', async () => {
+      setTxPhase('validating')
       setVault(await fetchVault(vaultId))
-      pushLog('Vault refreshed')
+      setTxPhase('confirmed')
+      pushLog('Vault refreshed from validated ledger')
     })
   }
 
   async function handleDeposit() {
     if (!wallets.depositor || !vaultId) return
     await run('deposit', async () => {
-      await depositVault(wallets.depositor!, vaultId, depositAmount)
-      pushLog(`VaultDeposit ${depositAmount} XRP by ${short(wallets.depositor!.address)}`)
-      setVault(await fetchVault(vaultId))
+      setTxPhase('signing')
+      setTxPhase('submitting')
+      const { receipt } = await depositVault(wallets.depositor!, vaultId, depositAmount)
+      setTxPhase('validating')
+      setLastTx(receipt)
+      pushLog(`VaultDeposit ${depositAmount} XRP — ${receipt.result}`)
+      const info = await fetchVault(vaultId)
+      setVault(info)
+      setSharesIssued(info.assetsTotal)
+      setTxPhase('confirmed')
     })
   }
 
   async function handleWithdraw() {
     if (!wallets.depositor || !vaultId) return
     await run('withdraw', async () => {
-      await withdrawVault(wallets.depositor!, vaultId, withdrawAmount)
-      pushLog(`VaultWithdraw ${withdrawAmount} XRP by ${short(wallets.depositor!.address)}`)
-      setVault(await fetchVault(vaultId))
+      setTxPhase('signing')
+      setTxPhase('submitting')
+      const { receipt } = await withdrawVault(wallets.depositor!, vaultId, withdrawAmount)
+      setTxPhase('validating')
+      setLastTx(receipt)
+      pushLog(`VaultWithdraw ${withdrawAmount} XRP — ${receipt.result}`)
+      const info = await fetchVault(vaultId)
+      setVault(info)
+      setSharesIssued(info.assetsAvailable)
+      setTxPhase('confirmed')
     })
   }
 
   async function handleCreateLoanBook() {
     if (!wallets.owner || !vaultId) return
     await run('create-broker', async () => {
-      const { loanBrokerId: id } = await createLoanBroker(wallets.owner!, vaultId, {
+      setTxPhase('signing')
+      setTxPhase('submitting')
+      const created = await createLoanBroker(wallets.owner!, vaultId, {
         managementFeeRateBps: 200
       })
-      setLoanBrokerId(id)
-      pushLog(`LoanBrokerSet ok — protocol loan book ${short(id)}`)
-      setLoanBroker(await fetchLoanBroker(id))
+      setTxPhase('validating')
+      setLoanBrokerId(created.loanBrokerId)
+      setLastTx(created.receipt)
+      pushLog(`LoanBrokerSet ${created.receipt.result} — LoanBroker ${shortAddr(created.loanBrokerId)}`)
+      setLoanBroker(await fetchLoanBroker(created.loanBrokerId))
+      setTxPhase('confirmed')
     })
   }
 
   async function handleDepositCover() {
     if (!wallets.owner || !loanBrokerId) return
     await run('deposit-cover', async () => {
-      await depositCover(wallets.owner!, loanBrokerId, coverAmount)
-      pushLog(`LoanBrokerCoverDeposit ${coverAmount} XRP`)
+      setTxPhase('submitting')
+      const { receipt } = await depositCover(wallets.owner!, loanBrokerId, coverAmount)
+      setLastTx(receipt)
       setLoanBroker(await fetchLoanBroker(loanBrokerId))
+      setTxPhase('confirmed')
+      pushLog(`LoanBrokerCoverDeposit ${coverAmount} XRP — ${receipt.result}`)
     })
   }
 
   async function handleWithdrawCover() {
     if (!wallets.owner || !loanBrokerId) return
     await run('withdraw-cover', async () => {
+      setTxPhase('submitting')
       await withdrawCover(wallets.owner!, loanBrokerId, coverWithdrawAmount)
-      pushLog(`LoanBrokerCoverWithdraw ${coverWithdrawAmount} XRP`)
       setLoanBroker(await fetchLoanBroker(loanBrokerId))
+      setTxPhase('confirmed')
+      pushLog(`LoanBrokerCoverWithdraw ${coverWithdrawAmount} XRP`)
     })
   }
 
   async function handleCreateLoan() {
     if (!wallets.owner || !wallets.borrower || !loanBrokerId) return
     await run('create-loan', async () => {
+      setBrokerSigned(true)
+      setTxPhase('signing')
+      setBorrowerSigned(true)
+      setTxPhase('submitting')
       const bps10 = Math.round(parseFloat(aprPercent) * 1000)
-      const { loanId: id } = await createLoan(wallets.owner!, wallets.borrower!, loanBrokerId, {
+      const created = await createLoan(wallets.owner!, wallets.borrower!, loanBrokerId, {
         principalXrp: principal,
         interestRateBps: bps10,
         paymentTotal: parseInt(paymentTotal, 10),
         paymentIntervalSeconds: 2592000
       })
-      setLoanId(id)
-      pushLog(`LoanSet ok — LoanID ${short(id)}`)
-      setLoan(await fetchLoan(id))
+      setTxPhase('validating')
+      setLoanId(created.loanId)
+      setLastTx(created.receipt)
+      pushLog(`LoanSet ${created.receipt.result} — LoanID ${shortAddr(created.loanId)}`)
+      setLoan(await fetchLoan(created.loanId))
+      if (vaultId) setVault(await fetchVault(vaultId))
+      if (loanBrokerId) setLoanBroker(await fetchLoanBroker(loanBrokerId))
+      setTxPhase('confirmed')
     })
   }
 
   async function handlePayLoan() {
     if (!wallets.borrower || !loanId) return
     await run('pay-loan', async () => {
-      await payLoan(wallets.borrower!, loanId, paymentAmount)
-      pushLog(`LoanPay ${paymentAmount} XRP`)
+      setTxPhase('signing')
+      setTxPhase('submitting')
+      const { receipt } = await payLoan(wallets.borrower!, loanId, paymentAmount)
+      setTxPhase('validating')
+      setLastTx(receipt)
+      pushLog(`LoanPay ${paymentAmount} XRP — ${receipt.result}`)
       setLoan(await fetchLoan(loanId))
       if (vaultId) setVault(await fetchVault(vaultId))
       if (loanBrokerId) setLoanBroker(await fetchLoanBroker(loanBrokerId))
+      setTxPhase('confirmed')
     })
   }
 
   async function handlePayFull() {
     if (!wallets.borrower || !loanId || !loan) return
     await run('pay-full', async () => {
-      await payLoanFull(wallets.borrower!, loanId, loan.totalValueOutstanding)
-      pushLog(`LoanPay full ${loan.totalValueOutstanding} XRP`)
+      setTxPhase('submitting')
+      const { receipt } = await payLoanFull(wallets.borrower!, loanId, loan.totalValueOutstanding)
+      setLastTx(receipt)
+      pushLog(`LoanPay full ${loan.totalValueOutstanding} XRP — ${receipt.result}`)
       setLoan(await fetchLoan(loanId))
       if (vaultId) setVault(await fetchVault(vaultId))
       if (loanBrokerId) setLoanBroker(await fetchLoanBroker(loanBrokerId))
+      setTxPhase('confirmed')
     })
   }
 
-  async function handleManage(
-    flag: typeof TF_LOAN_DEFAULT | typeof TF_LOAN_IMPAIR | typeof TF_LOAN_UNIMPAIR,
-    label: string
-  ) {
-    if (!wallets.owner || !loanId) return
-    await run(`manage-${label}`, async () => {
-      await manageLoan(wallets.owner!, loanId, flag)
-      pushLog(`LoanManage ${label}`)
-      setLoan(await fetchLoan(loanId))
-      if (vaultId) setVault(await fetchVault(vaultId))
-      if (loanBrokerId) setLoanBroker(await fetchLoanBroker(loanBrokerId))
-    })
+  const state: LabViewState = {
+    wallets: {
+      owner: toView(wallets.owner),
+      depositor: toView(wallets.depositor),
+      borrower: toView(wallets.borrower)
+    },
+    busy,
+    txPhase,
+    vaultId,
+    vault,
+    assetsMaximum,
+    depositAmount,
+    withdrawAmount,
+    loanBrokerId,
+    loanBroker,
+    coverAmount,
+    coverWithdrawAmount,
+    principal,
+    aprPercent,
+    paymentTotal,
+    loanId,
+    loan,
+    paymentAmount,
+    log,
+    sharesIssued,
+    depositorAssetBalance,
+    lastTx,
+    error,
+    technicalOpen,
+    highlight: null,
+    pressed: null,
+    brokerSigned,
+    borrowerSigned
   }
 
-  async function handleDeleteLoan() {
-    if (!wallets.owner || !loanId) return
-    await run('delete-loan', async () => {
-      await deleteLoan(wallets.owner!, loanId)
-      pushLog(`LoanDelete ${short(loanId)}`)
-      setLoanId('')
-      setLoan(null)
-      if (loanBrokerId) setLoanBroker(await fetchLoanBroker(loanBrokerId))
-    })
+  const handlers: LabViewHandlers = {
+    onFundRole: (role) => void fundRole(role),
+    onFundAll: () => void fundAll(),
+    onReset: clearSession,
+    onCreateVault: () => void handleCreateVault(),
+    onRefreshVault: () => void handleRefreshVault(),
+    onDeposit: () => void handleDeposit(),
+    onWithdraw: () => void handleWithdraw(),
+    onCreateLoanBook: () => void handleCreateLoanBook(),
+    onDepositCover: () => void handleDepositCover(),
+    onWithdrawCover: () => void handleWithdrawCover(),
+    onCreateLoan: () => void handleCreateLoan(),
+    onPayLoan: () => void handlePayLoan(),
+    onPayFull: () => void handlePayFull(),
+    onToggleTechnical: () => setTechnicalOpen((v) => !v),
+    onAssetsMaximum: setAssetsMaximum,
+    onDepositAmount: setDepositAmount,
+    onWithdrawAmount: setWithdrawAmount,
+    onCoverAmount: setCoverAmount,
+    onCoverWithdrawAmount: setCoverWithdrawAmount,
+    onPrincipal: setPrincipal,
+    onAprPercent: setAprPercent,
+    onPaymentTotal: setPaymentTotal,
+    onPaymentAmount: setPaymentAmount
   }
-
-  const assetsTotal = vault ? parseFloat(vault.assetsTotal) : 0
-  const assetsAvailable = vault ? parseFloat(vault.assetsAvailable) : 0
-  const assetsCap = vault ? parseFloat(vault.assetsMaximum) : 0
-  const utilization = assetsTotal > 0 ? ((assetsTotal - assetsAvailable) / assetsTotal) * 100 : 0
-  const capacityUsed = assetsCap > 0 ? (assetsTotal / assetsCap) * 100 : 0
 
   return (
-    <div className="space-y-6 min-w-0">
-      <header>
-        <h1 className="text-2xl font-bold">Live Devnet Lab</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Real XLS-65 / XLS-66 transactions on XRPL Devnet. Test assets only. The protocol
-          operator wallet creates the vault and signs loan origination — that is infrastructure,
-          not ownership of depositor capital.
-        </p>
-      </header>
-
-      <Card title="Wallets">
-        <p className="text-xs text-slate-500">
-          Three parties: protocol operator, depositor, borrower. Seeds stay in this browser only.
-          Never paste a mainnet seed.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {ROLES.map((role) => (
-            <div key={role} className="space-y-2">
-              <div className="text-xs text-slate-500">{ROLE_LABEL[role]}</div>
-              <div className="font-mono text-sm break-all">{short(wallets[role]?.address)}</div>
-              <Btn disabled={busy === `fund-${role}`} onClick={() => fundRole(role)}>
-                {wallets[role] ? 'Re-fund' : 'Fund wallet'}
-              </Btn>
+    <div className="space-y-4">
+      {onOpenWalkthrough && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-500/25 bg-indigo-950/30 px-4 py-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-100">
+              Accountabul Lending Protocol walkthrough
             </div>
-          ))}
+            <div className="text-xs text-slate-400">
+              Ten-minute guided tour — funding, vault, deposits, loans, payments, withdrawals.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenWalkthrough}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium"
+          >
+            Watch walkthrough
+          </button>
         </div>
-        <Btn className="bg-slate-700 hover:bg-slate-600" onClick={clearSession}>
-          Clear session
-        </Btn>
-      </Card>
-
-      <div className="grid md:grid-cols-2 gap-6 min-w-0">
-        <Card title="Vault">
-          <div className="space-y-2">
-            <label className="text-xs text-slate-500">Max vault capacity (XRP)</label>
-            <input
-              className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
-              value={assetsMaximum}
-              onChange={(e) => setAssetsMaximum(e.target.value)}
-            />
-            <Btn disabled={!wallets.owner || busy === 'create-vault'} onClick={handleCreateVault}>
-              Create vault (protocol)
-            </Btn>
-          </div>
-
-          {vaultId && (
-            <div className="pt-3 border-t border-slate-800 space-y-3">
-              <div className="text-xs font-mono text-slate-400 break-all">VaultID: {vaultId}</div>
-              <Btn disabled={busy === 'refresh-vault'} onClick={handleRefreshVault}>
-                Refresh
-              </Btn>
-
-              {vault && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <Stat label="Assets Total" value={`${vault.assetsTotal} XRP`} />
-                  <Stat label="Available to lend" value={`${vault.assetsAvailable} XRP`} />
-                  <Stat label="Max Capacity" value={`${vault.assetsMaximum} XRP`} />
-                  <Stat label="Utilization" value={`${utilization.toFixed(1)}%`} />
-                  <Stat label="Capacity used" value={`${capacityUsed.toFixed(3)}%`} />
-                  <Stat label="Loss unrealized" value={`${vault.lossUnrealized} XRP`} />
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                <div className="space-y-1 min-w-0">
-                  <input
-                    className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
-                    value={depositAmount}
-                    onChange={(e) => setDepositAmount(e.target.value)}
-                  />
-                  <Btn
-                    disabled={!wallets.depositor || busy === 'deposit'}
-                    onClick={handleDeposit}
-                    className="w-full"
-                  >
-                    Deposit
-                  </Btn>
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <input
-                    className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
-                  />
-                  <Btn
-                    disabled={!wallets.depositor || busy === 'withdraw'}
-                    onClick={handleWithdraw}
-                    className="w-full"
-                  >
-                    Withdraw
-                  </Btn>
-                </div>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <Card title="Protocol loan book">
-          <p className="text-xs text-slate-500">
-            XRPL names this object <code>LoanBroker</code>. Here it is protocol infrastructure —
-            not a person arranging the deal. Only the protocol operator can create it or post
-            first-loss cover.
-          </p>
-          <Btn
-            disabled={!wallets.owner || !vaultId || busy === 'create-broker'}
-            onClick={handleCreateLoanBook}
-          >
-            Open loan book (protocol)
-          </Btn>
-
-          {loanBrokerId && (
-            <div className="pt-3 border-t border-slate-800 space-y-3">
-              <div className="text-xs font-mono text-slate-400 break-all">
-                LoanBrokerID: {loanBrokerId}
-              </div>
-              {loanBroker && (
-                <div className="grid grid-cols-2 gap-3">
-                  <Stat label="Debt Total" value={`${loanBroker.debtTotal} XRP`} />
-                  <Stat label="Cover Available" value={`${loanBroker.coverAvailable} XRP`} />
-                </div>
-              )}
-              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
-                <input
-                  className="min-w-0 w-full sm:flex-1 bg-slate-800 rounded px-2 py-1 text-sm"
-                  value={coverAmount}
-                  onChange={(e) => setCoverAmount(e.target.value)}
-                />
-                <Btn disabled={!wallets.owner || busy === 'deposit-cover'} onClick={handleDepositCover}>
-                  Deposit first-loss cover
-                </Btn>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-2 min-w-0">
-                <input
-                  className="min-w-0 w-full sm:flex-1 bg-slate-800 rounded px-2 py-1 text-sm"
-                  value={coverWithdrawAmount}
-                  onChange={(e) => setCoverWithdrawAmount(e.target.value)}
-                />
-                <Btn
-                  disabled={!wallets.owner || busy === 'withdraw-cover'}
-                  onClick={handleWithdrawCover}
-                >
-                  Withdraw cover
-                </Btn>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <Card title="Originate loan">
-          <p className="text-xs text-slate-500">
-            Protocol and borrower both sign. Depositors do not sign each loan — they already
-            agreed to vault terms when they deposited.
-          </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div className="min-w-0">
-              <label className="text-xs text-slate-500">Principal (XRP)</label>
-              <input
-                className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
-                value={principal}
-                onChange={(e) => setPrincipal(e.target.value)}
-              />
-            </div>
-            <div className="min-w-0">
-              <label className="text-xs text-slate-500">Borrower APR %</label>
-              <input
-                className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
-                value={aprPercent}
-                onChange={(e) => setAprPercent(e.target.value)}
-              />
-            </div>
-            <div className="min-w-0">
-              <label className="text-xs text-slate-500"># Payments</label>
-              <input
-                className="w-full min-w-0 bg-slate-800 rounded px-2 py-1 text-sm"
-                value={paymentTotal}
-                onChange={(e) => setPaymentTotal(e.target.value)}
-              />
-            </div>
-          </div>
-          <Btn
-            disabled={!wallets.owner || !wallets.borrower || !loanBrokerId || busy === 'create-loan'}
-            onClick={handleCreateLoan}
-          >
-            Originate loan
-          </Btn>
-
-          {loanId && loan && (
-            <div className="pt-3 border-t border-slate-800 grid grid-cols-2 gap-3">
-              <div className="col-span-2 text-xs font-mono text-slate-400 break-all">
-                LoanID: {loanId}
-              </div>
-              <Stat label="Principal Outstanding" value={`${loan.principalOutstanding} XRP`} />
-              <Stat label="Total Owed" value={`${loan.totalValueOutstanding} XRP`} />
-              <Stat label="Interest Rate" value={`${(loan.interestRate / 1000).toFixed(2)}%`} />
-              <Stat label="Payments Remaining" value={`${loan.paymentRemaining ?? '—'}`} />
-              <Stat
-                label="Status"
-                value={loan.defaulted ? 'Defaulted' : loan.impaired ? 'Impaired' : 'Active'}
-              />
-              <div className="col-span-2 flex flex-wrap gap-2">
-                <Btn
-                  disabled={!wallets.owner || loan.impaired || loan.defaulted || busy === 'manage-impair'}
-                  onClick={() => handleManage(TF_LOAN_IMPAIR, 'impair')}
-                >
-                  Impair
-                </Btn>
-                <Btn
-                  disabled={!wallets.owner || !loan.impaired || loan.defaulted || busy === 'manage-unimpair'}
-                  onClick={() => handleManage(TF_LOAN_UNIMPAIR, 'unimpair')}
-                >
-                  Unimpair
-                </Btn>
-                <Btn
-                  disabled={!wallets.owner || loan.defaulted || busy === 'manage-default'}
-                  onClick={() => handleManage(TF_LOAN_DEFAULT, 'default')}
-                  className="bg-rose-700 hover:bg-rose-600"
-                >
-                  Default (needs grace elapsed)
-                </Btn>
-                <Btn
-                  disabled={
-                    !wallets.owner || (loan.paymentRemaining ?? 1) > 0 || busy === 'delete-loan'
-                  }
-                  onClick={handleDeleteLoan}
-                >
-                  Delete loan
-                </Btn>
-              </div>
-            </div>
-          )}
-        </Card>
-
-        <Card title="Repayment">
-          <div className="flex flex-col sm:flex-row gap-2 min-w-0">
-            <input
-              className="min-w-0 w-full sm:flex-1 bg-slate-800 rounded px-2 py-1 text-sm"
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-            />
-            <Btn disabled={!wallets.borrower || !loanId || busy === 'pay-loan'} onClick={handlePayLoan}>
-              Make payment
-            </Btn>
-          </div>
-          <Btn
-            disabled={!wallets.borrower || !loanId || !loan || busy === 'pay-full'}
-            onClick={handlePayFull}
-            className="w-full sm:w-auto whitespace-normal break-words"
-          >
-            Pay off in full ({loan ? `${loan.totalValueOutstanding} XRP` : '—'})
-          </Btn>
-        </Card>
-      </div>
-
-      <Card title="Activity Log">
-        <div className="font-mono text-xs space-y-1 max-h-64 overflow-y-auto overflow-x-hidden">
-          {log.length === 0 && <div className="text-slate-600">No activity yet.</div>}
-          {log.map((l, i) => (
-            <div key={i} className="text-slate-400 break-words">
-              {l}
-            </div>
-          ))}
-        </div>
-      </Card>
+      )}
+      <LabWorkbench state={state} handlers={handlers} />
     </div>
   )
 }

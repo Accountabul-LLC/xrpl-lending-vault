@@ -11,10 +11,21 @@ npm install
 npm run dev
 ```
 
-Site: `http://localhost:5173` (Academy first, then Live Devnet lab)  
+Site: `http://localhost:5173` (Academy first, then Live DevNet lab, then Walkthrough)  
 Ledger: `wss://s.devnet.rippletest.net:51233`
 
-Devnet faucet wallets and object IDs persist in `localStorage` so a refresh does not wipe the session. **Clear session** before switching machines. Never paste a mainnet seed.
+Devnet faucet wallets and object IDs persist in `localStorage` so a refresh does not wipe the session. **Reset DevNet Lab** clears the browser session only — it does not erase validated ledger history. Never paste a mainnet seed.
+
+## Walkthrough video
+
+The in-app **Walkthrough** (also linked from the Lab) is a ~10 minute narrated training session covering the full lending lifecycle: fund wallets, create the vault, deposit, create the Loan Broker, originate, pay, withdraw, and verify on XRPL.
+
+- Watch: `http://localhost:5173/?view=walkthrough`
+- Narration: `public/walkthrough/narration.mp3`
+- Rebuild audio: `npm run narration`
+- Record 1080p MP4: `npm run record:walkthrough`
+
+DevNet assets have no real monetary value. The **Protocol Loan Book** is the Accountabul UI; **LoanBroker** is the native XRPL object.
 
 ## Verified live on Devnet
 
