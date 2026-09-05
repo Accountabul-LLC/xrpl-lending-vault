@@ -1,10 +1,8 @@
 # JRPU Lending Protocol — XRPL Devnet
 
-Private Accountabul repo. The JRPU Lending Academy has two tracks: **Basic** (Depositor → Vault → Borrower) and **Institutional** (originator, underwriter, vault owner vs administrator, loan broker, first-loss, servicing, credentials). Then a live XRPL Devnet lab.
+The JRPU Lending Academy has two tracks: **Basic** (Depositor → Vault → Borrower) and **Institutional** (originator, underwriter, vault owner vs administrator, loan broker, first-loss, servicing, credentials). Then a live XRPL Devnet lab.
 
 Native [XLS-65](https://xls.xrpl.org/xls/XLS-0065-single-asset-vault.html) + [XLS-66](https://xls.xrpl.org/xls/XLS-0066-lending-protocol.html). No custom smart contract. No real funds.
-
-Repo: [`Accountabul-LLC/xrpl-lending-vault`](https://github.com/Accountabul-LLC/xrpl-lending-vault) (private).
 
 ## Run
 

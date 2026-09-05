@@ -54,6 +54,8 @@ export function LendingPipelineCanvas({
   const prefers = usePrefersReducedMotion()
   const reducedMotion = reduceMotionOverride || prefers
   const [webglOk, setWebglOk] = useState(true)
+  const [webglError, setWebglError] = useState<string | null>(null)
+  const [sceneAttempt, setSceneAttempt] = useState(0)
   const frameRef = useRef<HTMLDivElement>(null)
   const [frameSize, setFrameSize] = useState({ w: 0, h: 0 })
 
@@ -83,6 +85,15 @@ export function LendingPipelineCanvas({
   const showFallback = !webglOk
   const { h: fh } = frameSize
   const showProtocolChip = fh === 0 || fh >= 280
+  const handleWebglFailure = (error: Error) => {
+    setWebglError(error.message)
+    setWebglOk(false)
+  }
+  const retryWebgl = () => {
+    setWebglError(null)
+    setWebglOk(true)
+    setSceneAttempt((attempt) => attempt + 1)
+  }
 
   return (
     <div
@@ -91,10 +102,35 @@ export function LendingPipelineCanvas({
       className="relative w-full min-h-[220px] h-[min(48vh,420px)] sm:h-[min(52vh,480px)] lg:min-h-[360px] lg:h-[min(58vh,640px)] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
     >
       {showFallback ? (
-        <FallbackPipeline lesson={lesson} />
+        <>
+          <FallbackPipeline lesson={lesson} />
+          <div className="absolute inset-x-2 top-2 z-[var(--z-banner)] flex items-start justify-between gap-2 rounded-lg border border-amber-500/40 bg-slate-950/95 px-3 py-2 text-xs shadow-lg">
+            <div className="min-w-0">
+              <div className="font-semibold text-amber-200">Interactive 3D is unavailable</div>
+              <div className="mt-0.5 text-slate-400">
+                Enable browser hardware acceleration and WebGL, then retry.
+                {webglError ? ` ${webglError}` : ''}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={retryWebgl}
+              className="shrink-0 rounded-md border border-amber-400/50 px-2 py-1 font-semibold text-amber-100 hover:bg-amber-950"
+            >
+              Retry 3D
+            </button>
+          </div>
+        </>
       ) : (
         <PipelineErrorBoundary
-          fallback={<FallbackOnError lesson={lesson} onFallback={() => setWebglOk(false)} />}
+          key={sceneAttempt}
+          fallback={(error) => (
+            <FallbackOnError
+              lesson={lesson}
+              error={error}
+              onFallback={handleWebglFailure}
+            />
+          )}
         >
           <Suspense
             fallback={
@@ -111,7 +147,7 @@ export function LendingPipelineCanvas({
               onAnimationComplete={(id) => sim.clearAnimation(id)}
               onAnimationStart={(id) => sim.startAnimation(id)}
               registerProject={() => {}}
-              onWebglFailure={() => setWebglOk(false)}
+              onWebglFailure={handleWebglFailure}
             />
           </Suspense>
         </PipelineErrorBoundary>
@@ -170,14 +206,16 @@ export function LendingPipelineCanvas({
 
 function FallbackOnError({
   lesson,
+  error,
   onFallback
 }: {
   lesson: number
-  onFallback: () => void
+  error: Error
+  onFallback: (error: Error) => void
 }) {
   useEffect(() => {
-    onFallback()
-  }, [onFallback])
+    onFallback(error)
+  }, [error, onFallback])
   return <FallbackPipeline lesson={lesson} />
 }
 

@@ -1,6 +1,9 @@
 import { Component, type ReactNode } from 'react'
 
-type Props = { fallback: ReactNode; children: ReactNode }
+type Props = {
+  fallback: ReactNode | ((error: Error) => ReactNode)
+  children: ReactNode
+}
 type State = { error: Error | null }
 
 export class PipelineErrorBoundary extends Component<Props, State> {
@@ -11,7 +14,11 @@ export class PipelineErrorBoundary extends Component<Props, State> {
   }
 
   render() {
-    if (this.state.error) return this.props.fallback
+    if (this.state.error) {
+      return typeof this.props.fallback === 'function'
+        ? this.props.fallback(this.state.error)
+        : this.props.fallback
+    }
     return this.props.children
   }
 }

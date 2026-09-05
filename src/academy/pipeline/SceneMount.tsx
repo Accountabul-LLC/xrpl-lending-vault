@@ -20,7 +20,7 @@ export default function SceneMount({
   onAnimationComplete: (id: string) => void
   onAnimationStart: (id: string) => void
   registerProject: (fn: (id: EntityId) => { x: number; y: number } | null) => void
-  onWebglFailure?: () => void
+  onWebglFailure?: (error: Error) => void
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<LendingNetworkScene | null>(null)
@@ -43,12 +43,20 @@ export default function SceneMount({
       })
       sceneRef.current = scene
       registerProject((id) => scene.projectEntity(id))
+      const handleContextLost = (event: Event) => {
+        event.preventDefault()
+        onWebglFailure?.(new Error('The browser lost the WebGL context'))
+      }
+      scene.renderer.domElement.addEventListener('webglcontextlost', handleContextLost)
       return () => {
+        scene.renderer.domElement.removeEventListener('webglcontextlost', handleContextLost)
         scene.dispose()
         sceneRef.current = null
       }
-    } catch {
-      onWebglFailure?.()
+    } catch (error) {
+      onWebglFailure?.(
+        error instanceof Error ? error : new Error(`Unable to start the 3D scene: ${String(error)}`)
+      )
       return
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

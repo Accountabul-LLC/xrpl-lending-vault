@@ -19,8 +19,7 @@ product. Nothing here should be treated as legal advice.
   depositors) has multiple Howey hallmarks and should be reviewed as a
   likely security absent structuring advice from counsel.
 - If deemed a security, what registration/exemption applies (Reg D, Reg CF,
-  Reg A+, other)? [User's other project already has Reg CF experience per
-  Accountabul context — worth involving that same counsel.]
+  Reg A+, other)? Involve counsel experienced with the selected exemption.
 - Does advertising a specific "25% APY target" create securities-marketing
   issues (e.g., prohibited general solicitation, performance-guarantee-like
   claims) independent of the registration question?
