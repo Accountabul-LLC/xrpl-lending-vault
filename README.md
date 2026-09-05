@@ -11,10 +11,17 @@ npm install
 npm run dev
 ```
 
-Site: `http://localhost:5173` (Academy first, then Live Devnet lab)  
-Ledger: `wss://s.devnet.rippletest.net:51233`
+Site: `http://localhost:5173` (Academy first, then **Live DevNet lab**)  
+Ledger: `wss://s.devnet.rippletest.net:51233` — the UI banners **NETWORK: XRPL DEVNET**. These are test assets, not Mainnet.
 
-Devnet faucet wallets and object IDs persist in `localStorage` so a refresh does not wipe the session. **Clear session** before switching machines. Never paste a mainnet seed.
+The lab is an 8-step guided workflow: Fund wallets → Create vault → Deposit → Create Loan Broker (initialize the Protocol Loan Book) → Originate loan → Pay → Withdraw → Verify. Buttons stay disabled until prerequisites are met and show **why**. Reset Session clears local browser state only; it does not rewind XRPL DevNet.
+
+DevNet faucet wallets and object IDs persist in `localStorage` so a refresh does not wipe the session. Never paste a mainnet seed.
+
+```bash
+npm test              # unit / regression tests
+npm run test:devnet   # 20 consecutive live DevNet lifecycle runs
+```
 
 ## Verified live on Devnet
 

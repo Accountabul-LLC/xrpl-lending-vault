@@ -13,7 +13,7 @@ export default function App() {
         <div className="min-w-0">
           <div className="font-semibold text-sm lg:text-base truncate">JRPU Lending Protocol</div>
           <div className="text-[11px] text-slate-500 hidden sm:block">
-            Basic and institutional lending academy
+            {view === 'lab' ? 'NETWORK: XRPL DEVNET — test assets only' : 'Basic and institutional lending academy'}
           </div>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
