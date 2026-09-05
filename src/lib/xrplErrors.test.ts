@@ -34,4 +34,14 @@ describe('interpretXrplError', () => {
     expect(g.meaning.toLowerCase()).toMatch(/investment/)
     expect(g.fix.toLowerCase()).toMatch(/redemptiondate/)
   })
+
+  it('maps fractional LoanPay amounts to temBAD_AMOUNT (DEVNET-003)', () => {
+    const g = interpretXrplError(
+      new Error('8000001.217659692176 is an illegal amount: 8000001.217659692176 is an illegal amount'),
+      'LoanPay'
+    )
+    expect(g.code).toBe('temBAD_AMOUNT')
+    expect(g.category).toBe('XRPL TRANSACTION CONSTRUCTION')
+    expect(g.meaning.toLowerCase()).toMatch(/integer drops|periodicpayment/)
+  })
 })

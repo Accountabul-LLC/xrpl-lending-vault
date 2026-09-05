@@ -1,7 +1,6 @@
-import * as xrplLib from 'xrpl'
 import { Client, Wallet, convertStringToHex, dropsToXrp } from 'xrpl'
-import { ledgerAmountToXrp, percentToTenthsOfBps, rippleTimeToIso, xrpAmountToDrops } from './amounts'
-import { signWithLendingDefs } from './vaultCodec'
+import { ledgerAmountToXrp, percentToTenthsOfBps, rippleTimeToIso, roundUpDrops, xrpAmountToDrops } from './amounts'
+import { signWithLendingDefs, hashSignedBlob, signLoanSetByBorrower } from './vaultCodec'
 import {
   CLOSED_ENDED_MIN_INVESTMENT_SECONDS,
   LAB_SUBSCRIPTION_LEAD_SECONDS,
@@ -10,12 +9,6 @@ import {
   type VaultPhase
 } from './vaultPhase'
 import { XrplLabError } from './xrplErrors'
-
-const decode = (xrplLib as any).decode as (blob: string) => any
-const signLoanSetByCounterparty = (xrplLib as any).signLoanSetByCounterparty as (
-  wallet: Wallet,
-  tx: any
-) => { tx: any }
 
 export const DEVNET_WSS = 'wss://s.devnet.rippletest.net:51233'
 export const DEVNET_EXPLORER_TX = 'https://devnet.xrpl.org/transactions/'
@@ -162,6 +155,48 @@ function receiptFrom(result: any, txJson: Record<string, unknown>, label: string
   }
 }
 
+async function submitBlobAndWait(txBlob: string, prepared: Record<string, unknown>, label: string) {
+  const client = await getClient()
+  const hash = hashSignedBlob(txBlob)
+  const submitted: any = await client.request({
+    command: 'submit',
+    tx_blob: txBlob
+  })
+  const engine = String(submitted.result?.engine_result ?? '')
+  if (engine !== 'tesSUCCESS' && engine !== 'terQUEUED') {
+    throw new XrplLabError(label, `${label} failed: ${engine}`)
+  }
+  const lastLedger = Number(prepared.LastLedgerSequence)
+  const deadline = Date.now() + 90_000
+  while (Date.now() < deadline) {
+    const latest = await client.getLedgerIndex()
+    if (Number.isFinite(lastLedger) && lastLedger > 0 && latest > lastLedger) {
+      throw new XrplLabError(
+        label,
+        `${label} expired past LastLedgerSequence ${lastLedger}. Preliminary: ${engine}`
+      )
+    }
+    try {
+      const txRes: any = await client.request({ command: 'tx', transaction: hash })
+      if (txRes.result?.validated) {
+        return {
+          result: {
+            hash: txRes.result.hash ?? hash,
+            ledger_index: txRes.result.ledger_index,
+            meta: txRes.result.meta,
+            validated: true
+          }
+        }
+      }
+    } catch (e: any) {
+      const msg = String(e?.data?.error ?? e?.message ?? e)
+      if (!/txnNotFound/i.test(msg)) throw e
+    }
+    await sleep(1000)
+  }
+  throw new XrplLabError(label, `${label} did not validate within 90s. Preliminary: ${engine}`)
+}
+
 async function submitSigned(
   wallet: Wallet,
   tx: any,
@@ -178,7 +213,9 @@ async function submitSigned(
     const signed = extra?.lendingCodec
       ? signWithLendingDefs(wallet, prepared as Record<string, unknown>)
       : wallet.sign(prepared)
-    const result = await client.submitAndWait(signed.tx_blob)
+    const result = extra?.lendingCodec
+      ? await submitBlobAndWait(signed.tx_blob, prepared as Record<string, unknown>, label)
+      : await client.submitAndWait(signed.tx_blob)
     const meta: any = result.result.meta
     const receipt = receiptFrom(result, prepared, label)
     if (meta?.TransactionResult !== 'tesSUCCESS') {
@@ -594,8 +631,8 @@ function loanFromNode(loanId: string, node: any): LoanInfo {
       return new Date((n + 946684800) * 1000).toISOString()
     })(),
     paymentRemaining: node.PaymentRemaining,
-    periodicPayment: ledgerAmountToXrp(node.PeriodicPayment ?? '0'),
-    periodicPaymentDrops: String(node.PeriodicPayment ?? '0'),
+    periodicPayment: ledgerAmountToXrp(roundUpDrops(node.PeriodicPayment ?? '0')),
+    periodicPaymentDrops: roundUpDrops(node.PeriodicPayment ?? '0'),
     paymentInterval: node.PaymentInterval,
     gracePeriod: node.GracePeriod,
     flags,
@@ -670,12 +707,6 @@ export async function createLoan(
   loanBrokerId: string,
   opts: CreateLoanOpts
 ) {
-  if (typeof signLoanSetByCounterparty !== 'function') {
-    throw new XrplLabError(
-      'LoanSet',
-      'WALLET / SIGNING: xrpl.js signLoanSetByCounterparty is unavailable in this build'
-    )
-  }
   const client = await getClient()
   const tx: any = {
     TransactionType: 'LoanSet',
@@ -694,10 +725,12 @@ export async function createLoan(
     LoanServiceFee: opts.serviceFeeXrp ? xrpAmountToDrops(opts.serviceFeeXrp) : undefined
   }
   const prepared = await client.autofill(tx)
+  if (Number(prepared.Fee) < 400000) {
+    prepared.Fee = '400000'
+  }
   const brokerSigned = broker.sign(prepared)
-  const decoded = decode(brokerSigned.tx_blob)
-  const fullySigned = signLoanSetByCounterparty(borrower, decoded)
-  const result = await client.submitAndWait(fullySigned.tx)
+  const fullySigned = signLoanSetByBorrower(borrower, brokerSigned.tx_blob)
+  const result = await submitBlobAndWait(fullySigned.tx_blob, prepared as Record<string, unknown>, 'LoanSet')
   const meta: any = result.result.meta
   const receipt = receiptFrom(result, fullySigned.tx, 'LoanSet')
   if (meta?.TransactionResult !== 'tesSUCCESS') {
@@ -747,7 +780,7 @@ export async function payLoanDrops(payer: Wallet, loanId: string, amountDrops: s
 }
 
 export async function payRequiredInstallment(payer: Wallet, loan: LoanInfo) {
-  const amount = loan.periodicPaymentDrops
+  const amount = roundUpDrops(loan.periodicPaymentDrops)
   if (!amount || amount === '0') {
     throw new XrplLabError('LoanPay', 'Loan has no PeriodicPayment on the ledger')
   }

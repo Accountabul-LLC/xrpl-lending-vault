@@ -54,3 +54,28 @@ export function parseXrpNumber(value: string | number | undefined | null): numbe
   const n = typeof value === 'number' ? value : parseFloat(value)
   return Number.isFinite(n) ? n : 0
 }
+
+/**
+ * Lending STNumber values (PeriodicPayment, etc.) are drop-denominated and may include a
+ * fractional drop. LoanPay `Amount` is an STAmount and must be a whole number of drops.
+ * Round **up** so the payment is never short of the required installment.
+ */
+export function roundUpDrops(value: unknown): string {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return String(Math.ceil(value))
+  }
+  const s = String(value ?? '0').trim()
+  if (!s || s === '0') return '0'
+  if (/e/i.test(s)) {
+    const n = Number(s)
+    if (!Number.isFinite(n)) return '0'
+    return String(Math.ceil(n))
+  }
+  const neg = s.startsWith('-')
+  const raw = neg ? s.slice(1) : s
+  const [intPart, frac = ''] = raw.split('.')
+  const whole = BigInt(intPart || '0')
+  const bump = frac.split('').some((c) => c !== '0')
+  const drops = whole + (bump ? 1n : 0n)
+  return `${neg ? '-' : ''}${drops.toString()}`
+}

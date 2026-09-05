@@ -1,5 +1,7 @@
 import { encode, encodeForSigning, decode, XrplDefinitions } from 'ripple-binary-codec'
 import { sign as signKeypair } from 'ripple-keypairs'
+import { sha512 } from '@xrplf/isomorphic/sha512'
+import { bytesToHex, hexToBytes } from '@xrplf/isomorphic/utils'
 import type { Wallet } from 'xrpl'
 import bundled from 'ripple-binary-codec/dist/enums/definitions.json'
 
@@ -101,4 +103,42 @@ export function signWithLendingDefs(
     tx_blob: encode(txToSign, definitions),
     tx: txToSign
   }
+}
+
+/** Transaction ID (same as xrpl hashes.hashSignedTx) without decoding through the stock codec. */
+export function hashSignedBlob(txBlob: string): string {
+  const prefix = '54584E00'
+  const digest = sha512(hexToBytes(prefix + txBlob))
+  return bytesToHex(digest.slice(0, 32)).toUpperCase()
+}
+
+export const HASH_PREFIX_TX_SIGN = '53545800'
+/** rippled HashPrefix::CounterpartyTxSign ('CPT') */
+export const HASH_PREFIX_COUNTERPARTY_TX_SIGN = '43505400'
+
+/**
+ * LoanSet counterparty (borrower) signatures use a dedicated hash prefix (CPT),
+ * not the broker's STX prefix. xrpl.js signLoanSetByCounterparty still signs
+ * with STX, which DevNet rejects as "Counterparty: Invalid signature".
+ */
+export function signLoanSetByBorrower(
+  borrower: Wallet,
+  brokerSignedTx: Record<string, unknown> | string
+): { tx: Record<string, unknown>; tx_blob: string } {
+  const tx = {
+    ...(typeof brokerSignedTx === 'string'
+      ? (decode(brokerSignedTx) as Record<string, unknown>)
+      : brokerSignedTx)
+  }
+  delete tx.CounterpartySignature
+  const stx = encodeForSigning(tx)
+  if (!stx.toUpperCase().startsWith(HASH_PREFIX_TX_SIGN)) {
+    throw new Error(`encodeForSigning expected STX prefix, got ${stx.slice(0, 8)}`)
+  }
+  const cpt = HASH_PREFIX_COUNTERPARTY_TX_SIGN + stx.slice(8)
+  tx.CounterpartySignature = {
+    SigningPubKey: borrower.publicKey,
+    TxnSignature: signKeypair(cpt, borrower.privateKey)
+  }
+  return { tx, tx_blob: encode(tx) }
 }

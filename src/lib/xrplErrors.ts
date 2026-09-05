@@ -99,8 +99,8 @@ const CODES: Record<string, Omit<ErrorGuidance, 'code'>> = {
     category: 'DEVNET'
   },
   temBAD_AMOUNT: {
-    meaning: 'The Amount field is invalid (zero, negative, or wrong encoding).',
-    fix: 'Enter a positive amount. XRP amounts are submitted in drops.',
+    meaning: 'The Amount field is invalid (zero, negative, fractional, or wrong encoding).',
+    fix: 'Enter a positive whole-drop amount. LoanPay must not use the fractional PeriodicPayment STNumber; round it up to integer drops.',
     category: 'XRPL TRANSACTION CONSTRUCTION'
   },
   temINVALID: {
@@ -159,6 +159,14 @@ const TX_CODE_OVERRIDES: Record<string, Record<string, Partial<ErrorGuidance>>> 
       category: 'PROTOCOL PRECONDITION'
     }
   },
+  LoanPay: {
+    temBAD_AMOUNT: {
+      meaning:
+        'LoanPay Amount is an STAmount and must be integer drops. PeriodicPayment on the Loan object is an STNumber and can have a fractional drop component (for example 8000001.217…). Submitting that fraction is rejected as an illegal amount.',
+      fix: 'Round PeriodicPayment up to the next whole drop, then submit that integer as LoanPay Amount.',
+      category: 'XRPL TRANSACTION CONSTRUCTION'
+    }
+  },
   LoanSet: {
     tecTOO_SOON: {
       meaning: 'Loan origination is not allowed while the vault is still in the subscription phase.',
@@ -194,6 +202,7 @@ const NETWORK_HINTS = [
 export function extractResultCode(error: unknown): string {
   if (!error) return 'unknown'
   const message = error instanceof Error ? error.message : String(error)
+  if (/illegal amount/i.test(message)) return 'temBAD_AMOUNT'
   const fromCode = message.match(
     /\b(t(?:es|ec|em|ef|el|er)[A-Z0-9_]+)\b/
   )
@@ -210,8 +219,8 @@ export function interpretXrplError(
 ): ErrorGuidance & { whatFailed: string; raw: string } {
   const raw = error instanceof Error ? error.message : String(error)
   const code = extractResultCode(error)
-  const known = CODES[code]
   const lower = raw.toLowerCase()
+  const known = CODES[code]
   const isNetwork = NETWORK_HINTS.some((h) => lower.includes(h))
   const isExternal =
     isNetwork ||
