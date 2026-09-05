@@ -18,6 +18,8 @@ describe('lab workflow prerequisites', () => {
       depositorAddress: 'rDep',
       borrowerAddress: 'rBor',
       vaultExists: true,
+      vaultKind: 1,
+      vaultPhase: 'investment',
       assetsTotal: 20,
       depositorShares: 20,
       brokerExists: false
@@ -35,6 +37,8 @@ describe('lab workflow prerequisites', () => {
       depositorXrp: 80,
       vaultExists: true,
       vaultPrivate: true,
+      vaultKind: 1,
+      vaultPhase: 'subscription',
       vaultAsset: 'XRP',
       assetsMaximum: 100000,
       depositAmount: 20
@@ -49,10 +53,42 @@ describe('lab workflow prerequisites', () => {
       vaultExists: true,
       depositorShares: 20,
       assetsAvailable: 2,
-      withdrawAmount: 5
+      withdrawAmount: 5,
+      vaultKind: 1,
+      vaultPhase: 'redemption'
     })
     expect(checksForStep(7, snap).find((c) => c.id === 'avail')?.met).toBe(false)
     expect(isStepComplete(7, snap)).toBe(false)
+  })
+
+  it('blocks origination until the closed-ended vault is in investment phase', () => {
+    const snap = emptySnapshot({
+      ownerFunded: true,
+      depositorFunded: true,
+      borrowerFunded: true,
+      ownerAddress: 'rOwner',
+      borrowerAddress: 'rBor',
+      vaultExists: true,
+      vaultKind: 1,
+      vaultPhase: 'subscription',
+      assetsTotal: 20,
+      depositorShares: 20,
+      brokerExists: true
+    })
+    expect(checksForStep(5, snap).find((c) => c.id === 'phase')?.met).toBe(false)
+    expect(isReady(checksForStep(5, snap))).toBe(false)
+  })
+
+  it('blocks withdrawal during the investment phase', () => {
+    const snap = emptySnapshot({
+      vaultExists: true,
+      vaultKind: 1,
+      vaultPhase: 'investment',
+      depositorShares: 20,
+      assetsAvailable: 10,
+      withdrawAmount: 3
+    })
+    expect(checksForStep(7, snap).find((c) => c.id === 'phase')?.met).toBe(false)
   })
 
   it('marks fund step complete only after all three wallets are ledger-funded', () => {

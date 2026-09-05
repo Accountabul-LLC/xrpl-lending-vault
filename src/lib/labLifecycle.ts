@@ -10,9 +10,12 @@ import {
   fetchLoan,
   fetchLoanBroker,
   fetchMptAmount,
+  fetchRippleTime,
   fetchVault,
   fundNewWallet,
   payRequiredInstallment,
+  vaultPhaseOf,
+  waitUntilRippleTime,
   withdrawVault,
   type LoanBrokerInfo,
   type LoanInfo,
@@ -20,6 +23,13 @@ import {
   type VaultInfo
 } from './xrpl'
 import { interpretXrplError, type FailureCategory } from './xrplErrors'
+import {
+  CLOSED_ENDED_MIN_INVESTMENT_SECONDS,
+  LAB_PAYMENT_INTERVAL_SECONDS,
+  LAB_PAYMENT_TOTAL,
+  LAB_SUBSCRIPTION_LEAD_SECONDS,
+  VAULT_KIND_CLOSED_ENDED
+} from './vaultPhase'
 
 export const LAB_DEFAULTS = {
   assetsMaximumXrp: '100000',
@@ -27,12 +37,14 @@ export const LAB_DEFAULTS = {
   withdrawXrp: '3',
   principalXrp: '8',
   aprPercent: '8',
-  paymentTotal: 12,
-  paymentIntervalSeconds: 2592000,
-  gracePeriodSeconds: 604800,
+  paymentTotal: LAB_PAYMENT_TOTAL,
+  paymentIntervalSeconds: LAB_PAYMENT_INTERVAL_SECONDS,
+  gracePeriodSeconds: undefined as number | undefined,
   managementFeeRate: 1000,
   originationFeeXrp: undefined as string | undefined,
-  serviceFeeXrp: undefined as string | undefined
+  serviceFeeXrp: undefined as string | undefined,
+  subscriptionLeadSeconds: LAB_SUBSCRIPTION_LEAD_SECONDS,
+  minInvestmentSeconds: CLOSED_ENDED_MIN_INVESTMENT_SECONDS
 }
 
 export type RoleWallets = {
@@ -119,18 +131,24 @@ export async function runFullLabLifecycle(
   try {
     const created = await createVault(owner, {
       assetsMaximumXrp: defaults.assetsMaximumXrp,
-      data: 'JRPU Live DevNet Lab vault'
+      data: 'JRPU Live DevNet Lab vault',
+      closedEnded: true
     })
     const verified = await fetchVault(created.vaultId)
     if (verified.vaultId !== created.vaultId) {
       throw new Error('vault_info returned a different Vault ID than VaultCreate')
+    }
+    if (verified.vaultKind !== VAULT_KIND_CLOSED_ENDED) {
+      throw new Error(
+        `VaultKind is ${verified.vaultKind}; LoanBrokerSet requires a closed-ended vault (VaultKind=1)`
+      )
     }
     result.vault = verified
     steps.vault = {
       name: 'Vault',
       ok: true,
       receipt: created.receipt,
-      detail: `VaultID ${verified.vaultId} cap ${verified.assetsMaximum}`
+      detail: `VaultID ${verified.vaultId} closed-ended cap ${verified.assetsMaximum} sub ${verified.subscriptionIso} red ${verified.redemptionIso}`
     }
   } catch (e) {
     steps.vault = fail('VaultCreate', e)
@@ -140,6 +158,13 @@ export async function runFullLabLifecycle(
   const vaultId = result.vault!.vaultId
   let vaultBeforeDeposit: VaultInfo | undefined
   try {
+    const now = await fetchRippleTime()
+    const phase = vaultPhaseOf(result.vault!, now)
+    if (phase !== 'subscription' && phase !== 'open-ended') {
+      throw new Error(
+        `Cannot deposit: vault phase is ${phase}. Deposits require the subscription window.`
+      )
+    }
     vaultBeforeDeposit = await fetchVault(vaultId)
     const dep = await depositVault(depositor, vaultId, defaults.depositXrp)
     const after = dep.vault
@@ -184,6 +209,18 @@ export async function runFullLabLifecycle(
 
   const loanBrokerId = result.broker!.loanBrokerId
   try {
+    const vault = await fetchVault(vaultId)
+    if (vault.subscriptionDate) {
+      await waitUntilRippleTime(vault.subscriptionDate + 1, 'investment phase (after SubscriptionDate)')
+    }
+    const now = await fetchRippleTime()
+    const phase = vaultPhaseOf(vault, now)
+    if (phase === 'subscription') {
+      throw new Error('Still in subscription after wait; LoanSet would return tecTOO_SOON')
+    }
+    if (phase === 'redemption') {
+      throw new Error('Vault entered redemption before origination; LoanSet would return tecEXPIRED')
+    }
     const created = await createLoan(owner, borrower, loanBrokerId, {
       principalXrp: defaults.principalXrp,
       interestRateBps10: Math.round(parseFloat(defaults.aprPercent) * 1000),
@@ -213,6 +250,10 @@ export async function runFullLabLifecycle(
 
   try {
     const before = await fetchLoan(result.loan!.loanId)
+    const due = Number(before.nextPaymentDueDate ?? 0)
+    if (due > 0) {
+      await waitUntilRippleTime(due, 'first payment due (regular LoanPay)')
+    }
     const paid = await payRequiredInstallment(borrower, before)
     const after = paid.loan
     if ((after.paymentRemaining ?? 0) >= (before.paymentRemaining ?? 1)) {
@@ -236,6 +277,15 @@ export async function runFullLabLifecycle(
 
   try {
     result.vault = await fetchVault(vaultId)
+    if (result.vault.redemptionDate) {
+      await waitUntilRippleTime(result.vault.redemptionDate, 'redemption phase (VaultWithdraw)')
+    }
+    result.vault = await fetchVault(vaultId)
+    const now = await fetchRippleTime()
+    const phase = vaultPhaseOf(result.vault, now)
+    if (phase === 'investment') {
+      throw new Error('Still in investment phase; VaultWithdraw would return tecTOO_SOON')
+    }
     const available = parseXrpNumber(result.vault.assetsAvailable)
     const requested = parseFloat(defaults.withdrawXrp)
     if (available + 1e-9 < requested) {

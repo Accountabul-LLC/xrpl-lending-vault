@@ -32,11 +32,13 @@ import {
   fetchLoan,
   fetchLoanBroker,
   fetchMptAmount,
+  fetchRippleTime,
   fetchVault,
   fundNewWallet,
   listLoans,
   payLoan,
   payRequiredInstallment,
+  vaultPhaseOf,
   withdrawVault,
   type LoanBrokerInfo,
   type LoanInfo,
@@ -44,6 +46,7 @@ import {
   type VaultInfo
 } from '../lib/xrpl'
 import { interpretXrplError, type ErrorGuidance } from '../lib/xrplErrors'
+import { formatPhase, phaseHint, secondsUntil, type VaultPhase } from '../lib/vaultPhase'
 import {
   ActionButton,
   ErrorBox,
@@ -135,7 +138,7 @@ export default function DevnetLab() {
   const [aprPercent, setAprPercent] = useState(LAB_DEFAULTS.aprPercent)
   const [paymentTotal, setPaymentTotal] = useState(String(LAB_DEFAULTS.paymentTotal))
   const [paymentInterval, setPaymentInterval] = useState(String(LAB_DEFAULTS.paymentIntervalSeconds))
-  const [gracePeriod, setGracePeriod] = useState(String(LAB_DEFAULTS.gracePeriodSeconds))
+  const [gracePeriod, setGracePeriod] = useState('0')
   const [originationFee, setOriginationFee] = useState('0')
   const [serviceFee, setServiceFee] = useState('0')
   const [loanId, setLoanId] = useState(session.loanId)
@@ -152,6 +155,8 @@ export default function DevnetLab() {
   const [withdrawMade, setWithdrawMade] = useState(session.withdrawMade)
   const [verified, setVerified] = useState(false)
   const [withdrawBefore, setWithdrawBefore] = useState<{ shares: string; available: string } | null>(null)
+  const [ledgerTime, setLedgerTime] = useState<number>(0)
+  const [vaultPhase, setVaultPhase] = useState<VaultPhase>('open-ended')
 
   function pushLog(msg: string) {
     setLog((l) => [`${new Date().toLocaleTimeString()}  ${msg}`, ...l].slice(0, 40))
@@ -175,6 +180,26 @@ export default function DevnetLab() {
       withdrawnXrp
     })
   }, [wallets, vaultId, loanBrokerId, loanId, loanIds, paymentMade, withdrawMade, depositedXrp, withdrawnXrp])
+
+  useEffect(() => {
+    let cancelled = false
+    async function tick() {
+      try {
+        const now = await fetchRippleTime()
+        if (cancelled) return
+        setLedgerTime(now)
+        if (vault) setVaultPhase(vaultPhaseOf(vault, now))
+      } catch {
+        /* keep last known time */
+      }
+    }
+    tick()
+    const id = window.setInterval(tick, 4000)
+    return () => {
+      cancelled = true
+      window.clearInterval(id)
+    }
+  }, [vault])
 
   useEffect(() => {
     let cancelled = false
@@ -248,6 +273,10 @@ export default function DevnetLab() {
         vaultId,
         vaultPrivate: Boolean(vault?.isPrivate),
         vaultAsset: vault?.asset ?? 'XRP',
+        vaultKind: vault?.vaultKind ?? 0,
+        vaultPhase,
+        subscriptionDate: vault?.subscriptionDate,
+        redemptionDate: vault?.redemptionDate,
         assetsTotal: parseXrpNumber(vault?.assetsTotal),
         assetsAvailable: parseXrpNumber(vault?.assetsAvailable),
         assetsMaximum: parseXrpNumber(vault?.assetsMaximum),
@@ -277,7 +306,9 @@ export default function DevnetLab() {
       withdrawMade,
       verified,
       depositAmount,
-      withdrawAmount
+      withdrawAmount,
+      vaultPhase,
+      ledgerTime
     ]
   )
 
@@ -452,8 +483,8 @@ export default function DevnetLab() {
         principalXrp: principal,
         interestRateBps10: Math.round(parseFloat(aprPercent) * 1000),
         paymentTotal: parseInt(paymentTotal, 10),
-        paymentIntervalSeconds: parseInt(paymentInterval, 10) || 2592000,
-        gracePeriodSeconds: parseInt(gracePeriod, 10) || 604800,
+        paymentIntervalSeconds: parseInt(paymentInterval, 10) || 60,
+        gracePeriodSeconds: parseInt(gracePeriod, 10) > 0 ? parseInt(gracePeriod, 10) : undefined,
         originationFeeXrp: parseXrpNumber(originationFee) > 0 ? originationFee : undefined,
         serviceFeeXrp: parseXrpNumber(serviceFee) > 0 ? serviceFee : undefined
       })
@@ -581,7 +612,9 @@ export default function DevnetLab() {
         <h1 className="text-2xl font-bold">LIVE DEVNET WORKFLOW</h1>
         <p className="text-slate-400 text-sm">
           Guided XRPL Lending Protocol laboratory. Each step names the wallet, the native
-          transaction, the prerequisites, and what the validated ledger returned.
+          transaction, the prerequisites, and what the validated ledger returned. This lab uses a
+          public <strong>closed-ended</strong> XRP vault because LendingProtocolV1_1 only allows a
+          LoanBroker to attach to closed-ended vaults.
         </p>
         <ol className="text-sm text-slate-300 space-y-0.5 font-mono">
           <li>1. Fund Wallets</li>
@@ -603,6 +636,26 @@ export default function DevnetLab() {
       </header>
 
       <ProgressBar statuses={statuses} />
+
+      {vault && (
+        <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-1">
+          <div className="text-[10px] uppercase tracking-[0.2em] text-slate-500">Vault phase</div>
+          <div className="text-sm font-semibold text-sky-300">{formatPhase(vaultPhase)}</div>
+          <p className="text-xs text-slate-400">{phaseHint(vaultPhase, vault, ledgerTime)}</p>
+          {vaultPhase === 'subscription' && (
+            <p className="text-xs text-amber-300">
+              Investment starts in {secondsUntil(vault.subscriptionDate, ledgerTime)}s — deposit and
+              create the Loan Broker now.
+            </p>
+          )}
+          {vaultPhase === 'investment' && (
+            <p className="text-xs text-amber-300">
+              Redemption in {secondsUntil(vault.redemptionDate, ledgerTime)}s — originate and pay the
+              loan now. Withdrawals are locked (tecTOO_SOON).
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="rounded-xl border border-slate-800 bg-slate-900 p-4 space-y-2">
         <h2 className="text-sm font-semibold">Reset DevNet Lab Session</h2>
@@ -682,9 +735,15 @@ export default function DevnetLab() {
           <div className="inline-flex rounded-md border border-emerald-700 bg-emerald-950/40 px-2 py-1 text-xs text-emerald-300">
             PUBLIC VAULT
           </div>
+          <div className="inline-flex rounded-md border border-sky-700 bg-sky-950/40 px-2 py-1 text-xs text-sky-300 ml-2">
+            CLOSED-ENDED
+          </div>
           <p className="text-[11px] text-slate-500">
             A public vault does not require credential-based authorization for depositors. This lab
-            does not set tfVaultPrivate or a DomainID.
+            does not set tfVaultPrivate or a DomainID. Closed-ended (VaultKind=1) is required for
+            LoanBrokerSet on DevNet with LendingProtocolV1_1. SubscriptionDate is ~45s after create;
+            RedemptionDate is 180s after that. Deposit during subscription, originate during
+            investment, withdraw after redemption.
           </p>
         </div>
         <ActionButton
@@ -705,6 +764,10 @@ export default function DevnetLab() {
             <Kv label="Assets Total" value={`${vault.assetsTotal} XRP`} />
             <Kv label="Assets Available" value={`${vault.assetsAvailable} XRP`} />
             <Kv label="Share Issuance ID" value={vault.shareMptId} />
+            <Kv label="Vault Kind" value={vault.vaultKind === 1 ? 'CLOSED-ENDED (1)' : `OPEN-ENDED (${vault.vaultKind})`} />
+            <Kv label="Subscription Date" value={vault.subscriptionIso} />
+            <Kv label="Redemption Date" value={vault.redemptionIso} />
+            <Kv label="Current Phase" value={`${formatPhase(vaultPhase)}${ledgerTime ? ` · ledger ${ledgerTime}` : ''}`} />
             <Kv label="Transaction Hash" value={receipts[2]?.hash} />
           </div>
         )}
@@ -893,7 +956,7 @@ export default function DevnetLab() {
           <div>
             <label className="text-xs text-slate-500">
               Number of Payments
-              <Tip text="Payment Total — how many scheduled installments." />
+              <Tip text="Payment Total — how many scheduled installments. This lab defaults to 1 so the loan matures inside the 180-second investment window." />
             </label>
             <input
               className="w-full bg-slate-800 rounded px-2 py-1 text-sm"
@@ -904,7 +967,7 @@ export default function DevnetLab() {
           <div>
             <label className="text-xs text-slate-500">
               Payment Interval (seconds)
-              <Tip text="Time between required payments. 2592000 = 30 days." />
+              <Tip text="Time between required payments. This lab defaults to 60 seconds so a 1-payment loan fits the 180-second closed-ended investment window (final payment + 60s buffer ≤ RedemptionDate)." />
             </label>
             <input
               className="w-full bg-slate-800 rounded px-2 py-1 text-sm"
@@ -915,7 +978,7 @@ export default function DevnetLab() {
           <div>
             <label className="text-xs text-slate-500">
               Grace Period (seconds)
-              <Tip text="Seconds after a missed payment before the loan can be defaulted." />
+              <Tip text="Seconds after a missed payment before the loan can be defaulted. Leave 0 to omit the field and use the protocol default. Must not exceed Payment Interval if set." />
             </label>
             <input
               className="w-full bg-slate-800 rounded px-2 py-1 text-sm"
@@ -1098,6 +1161,8 @@ export default function DevnetLab() {
             <Kv label="Assets Total" value={`${vault?.assetsTotal ?? '—'} XRP`} />
             <Kv label="Assets Available" value={`${vault?.assetsAvailable ?? '—'} XRP`} />
             <Kv label="Outstanding Lending" value={`${formatXrp(outstandingLending)} XRP`} />
+            <Kv label="Vault Kind" value={vault?.vaultKind === 1 ? 'CLOSED-ENDED' : 'OPEN-ENDED'} />
+            <Kv label="Phase" value={formatPhase(vaultPhase)} />
           </div>
           <div className="rounded-lg border border-slate-800 p-3 space-y-1">
             <h3 className="font-semibold text-sm">DEPOSITOR</h3>

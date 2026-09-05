@@ -40,7 +40,7 @@ const CODES: Record<string, Omit<ErrorGuidance, 'code'>> = {
   },
   tecNO_PERMISSION: {
     meaning: 'The submitting account is not allowed to perform this operation.',
-    fix: 'LoanBrokerSet and cover deposits must be signed by the vault owner. LoanPay must be signed by the borrower. Overpayments require the loan to allow overpayment.',
+    fix: 'LoanBrokerSet must be signed by the vault owner and the vault must be closed-ended. LoanPay must be signed by the borrower.',
     category: 'PROTOCOL PRECONDITION'
   },
   tecNO_ENTRY: {
@@ -64,13 +64,13 @@ const CODES: Record<string, Omit<ErrorGuidance, 'code'>> = {
     category: 'PROTOCOL PRECONDITION'
   },
   tecTOO_SOON: {
-    meaning: 'The loan is not yet eligible for this action (for example, default before the grace period elapses).',
-    fix: 'Wait until the protocol time condition is met, or use a regular LoanPay instead of default.',
+    meaning: 'The protocol time condition is not yet met.',
+    fix: 'For a closed-ended vault, wait until after SubscriptionDate to originate a loan, and until RedemptionDate to withdraw. For defaults, wait until the grace period elapses.',
     category: 'PROTOCOL PRECONDITION'
   },
   tecEXPIRED: {
-    meaning: 'The payment is late and was not submitted as a late payment.',
-    fix: 'Retry LoanPay with the late-payment flag, or make the payment before Next Payment Due.',
+    meaning: 'This action is no longer allowed at the current vault or loan phase.',
+    fix: 'Deposits are only allowed during subscription. New loans are not allowed after RedemptionDate. Late LoanPay needs the late-payment flag.',
     category: 'PROTOCOL PRECONDITION'
   },
   tecKILLED: {
@@ -135,6 +135,50 @@ const CODES: Record<string, Omit<ErrorGuidance, 'code'>> = {
   }
 }
 
+const TX_CODE_OVERRIDES: Record<string, Record<string, Partial<ErrorGuidance>>> = {
+  LoanBrokerSet: {
+    tecNO_PERMISSION: {
+      meaning:
+        'LendingProtocolV1_1 only allows a LoanBroker to attach to a closed-ended vault. An open-ended vault (VaultKind omitted or 0) is rejected even when the signer is the vault owner.',
+      fix: 'Create a public closed-ended vault (VaultKind=1) with future SubscriptionDate and RedemptionDate (gap ≥ 180 seconds), then submit LoanBrokerSet as the vault owner.',
+      category: 'PROTOCOL PRECONDITION'
+    }
+  },
+  VaultDeposit: {
+    tecEXPIRED: {
+      meaning:
+        'Deposits are only allowed during the closed-ended vault subscription phase. The subscription window has closed (investment or redemption).',
+      fix: 'Reset the lab session and create a new closed-ended vault, then deposit before SubscriptionDate.',
+      category: 'PROTOCOL PRECONDITION'
+    }
+  },
+  VaultWithdraw: {
+    tecTOO_SOON: {
+      meaning: 'Withdrawals are blocked during the closed-ended vault investment phase.',
+      fix: 'Wait until RedemptionDate, then submit VaultWithdraw from the depositor.',
+      category: 'PROTOCOL PRECONDITION'
+    }
+  },
+  LoanSet: {
+    tecTOO_SOON: {
+      meaning: 'Loan origination is not allowed while the vault is still in the subscription phase.',
+      fix: 'Wait until after SubscriptionDate (investment phase), then have the broker and borrower cosign LoanSet.',
+      category: 'PROTOCOL PRECONDITION'
+    },
+    tecEXPIRED: {
+      meaning: 'The vault has entered the redemption phase, so new loans are not allowed.',
+      fix: 'Reset the session and create a new closed-ended vault if you still need to originate a loan.',
+      category: 'PROTOCOL PRECONDITION'
+    },
+    tecNO_PERMISSION: {
+      meaning:
+        'The loan schedule (final payment + 60s redemption buffer) extends past the vault RedemptionDate, or a signer is not the broker/borrower.',
+      fix: 'Use a 60-second payment interval and a single payment so the loan fits the 180-second investment window.',
+      category: 'PROTOCOL PRECONDITION'
+    }
+  }
+}
+
 const NETWORK_HINTS = [
   'websocket',
   'disconnected',
@@ -176,7 +220,8 @@ export function interpretXrplError(
     lower.includes('unavailable')
 
   if (known) {
-    return { code, whatFailed: txType, raw, ...known }
+    const override = TX_CODE_OVERRIDES[txType]?.[code]
+    return { code, whatFailed: txType, raw, ...known, ...override }
   }
   if (isExternal) {
     return {

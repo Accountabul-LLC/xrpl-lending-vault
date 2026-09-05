@@ -126,7 +126,7 @@ function renderReport(rows: RunRow[], defects: Defect[], streak: number): string
 }
 
 async function main() {
-  const target = 20
+  const target = Number(process.env.DEVNET_TARGET_RUNS ?? 20)
   const maxAttempts = 40
   const rows: RunRow[] = []
   const defects: Defect[] = []

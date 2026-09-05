@@ -1,6 +1,14 @@
 import * as xrplLib from 'xrpl'
 import { Client, Wallet, convertStringToHex, dropsToXrp } from 'xrpl'
-import { ledgerAmountToXrp, percentToTenthsOfBps, xrpAmountToDrops } from './amounts'
+import { ledgerAmountToXrp, percentToTenthsOfBps, rippleTimeToIso, xrpAmountToDrops } from './amounts'
+import { signWithLendingDefs } from './vaultCodec'
+import {
+  CLOSED_ENDED_MIN_INVESTMENT_SECONDS,
+  LAB_SUBSCRIPTION_LEAD_SECONDS,
+  VAULT_KIND_CLOSED_ENDED,
+  classifyVaultPhase,
+  type VaultPhase
+} from './vaultPhase'
 import { XrplLabError } from './xrplErrors'
 
 const decode = (xrplLib as any).decode as (blob: string) => any
@@ -158,7 +166,7 @@ async function submitSigned(
   wallet: Wallet,
   tx: any,
   label: string,
-  extra?: { feeDrops?: string }
+  extra?: { feeDrops?: string; lendingCodec?: boolean }
 ): Promise<{ receipt: TxReceipt; meta: any; result: any }> {
   return withRetry(label, async () => {
     const client = await getClient()
@@ -167,7 +175,9 @@ async function submitSigned(
     if (extra?.feeDrops && Number(prepared.Fee) < Number(extra.feeDrops)) {
       prepared.Fee = extra.feeDrops
     }
-    const signed = wallet.sign(prepared)
+    const signed = extra?.lendingCodec
+      ? signWithLendingDefs(wallet, prepared as Record<string, unknown>)
+      : wallet.sign(prepared)
     const result = await client.submitAndWait(signed.tx_blob)
     const meta: any = result.result.meta
     const receipt = receiptFrom(result, prepared, label)
@@ -176,6 +186,30 @@ async function submitSigned(
     }
     return { receipt, meta, result }
   })
+}
+
+export async function fetchRippleTime(): Promise<number> {
+  const client = await getClient()
+  const res: any = await client.request({
+    command: 'ledger',
+    ledger_index: 'validated'
+  })
+  const close = res.result.ledger?.close_time ?? res.result.closed?.ledger?.close_time
+  const n = Number(close)
+  if (!Number.isFinite(n) || n <= 0) {
+    throw new XrplLabError('ledger', 'validated ledger close_time missing')
+  }
+  return n
+}
+
+export async function waitUntilRippleTime(target: number, label: string): Promise<number> {
+  for (;;) {
+    const now = await fetchRippleTime()
+    if (now >= target) return now
+    const remaining = target - now
+    console.log(`[lab] waiting for ${label}: ${remaining}s remaining (ledger ${now} → ${target})`)
+    await sleep(Math.min(Math.max(remaining * 1000, 800), 12_000))
+  }
 }
 
 export async function fetchAccountXrp(address: string): Promise<{
@@ -249,11 +283,18 @@ export interface VaultInfo {
   outstandingShares: string
   scale: number
   withdrawalPolicy?: string | number
+  vaultKind: number
+  subscriptionDate?: number
+  redemptionDate?: number
+  subscriptionIso: string
+  redemptionIso: string
 }
 
 function vaultFromNode(vaultId: string, node: any, shares?: any): VaultInfo {
   const flags = Number(node.Flags ?? 0)
   const asset = node.Asset?.currency ?? (node.Asset?.mpt_issuance_id ? 'MPT' : 'XRP')
+  const subscriptionDate = node.SubscriptionDate != null ? Number(node.SubscriptionDate) : undefined
+  const redemptionDate = node.RedemptionDate != null ? Number(node.RedemptionDate) : undefined
   return {
     vaultId,
     account: node.Account,
@@ -268,12 +309,27 @@ function vaultFromNode(vaultId: string, node: any, shares?: any): VaultInfo {
     isPrivate: (flags & LSF_VAULT_PRIVATE) !== 0,
     outstandingShares: String(shares?.OutstandingAmount ?? '0'),
     scale: Number(node.Scale ?? shares?.AssetScale ?? 0),
-    withdrawalPolicy: node.WithdrawalPolicy
+    withdrawalPolicy: node.WithdrawalPolicy,
+    vaultKind: Number(node.VaultKind ?? 0),
+    subscriptionDate: Number.isFinite(subscriptionDate) ? subscriptionDate : undefined,
+    redemptionDate: Number.isFinite(redemptionDate) ? redemptionDate : undefined,
+    subscriptionIso: rippleTimeToIso(subscriptionDate),
+    redemptionIso: rippleTimeToIso(redemptionDate)
   }
+}
+
+export function vaultPhaseOf(vault: VaultInfo, nowRippleTime: number): VaultPhase {
+  return classifyVaultPhase({
+    vaultKind: vault.vaultKind,
+    subscriptionDate: vault.subscriptionDate,
+    redemptionDate: vault.redemptionDate,
+    nowRippleTime
+  })
 }
 
 export async function fetchVault(vaultId: string): Promise<VaultInfo> {
   const client = await getClient()
+  let fromInfo: VaultInfo | null = null
   try {
     const res: any = await client.request({
       command: 'vault_info',
@@ -281,30 +337,47 @@ export async function fetchVault(vaultId: string): Promise<VaultInfo> {
       ledger_index: 'validated'
     } as any)
     const vault = res.result.vault
-    if (!vault) throw new Error('vault_info returned no vault')
-    return vaultFromNode(vault.index ?? vaultId, vault, vault.shares)
-  } catch (vaultInfoErr) {
-    try {
-      const res: any = await client.request({
-        command: 'ledger_entry',
-        index: vaultId,
-        ledger_index: 'validated'
-      } as any)
-      const node = res.result.node
-      if (!node || node.LedgerEntryType !== 'Vault') {
-        throw new XrplLabError('vault_info', `tecNO_ENTRY: Vault ${vaultId} not found`)
-      }
-      return vaultFromNode(vaultId, node)
-    } catch (e) {
-      throw new XrplLabError('vault_info', vaultInfoErr ?? e)
+    if (vault) fromInfo = vaultFromNode(vault.index ?? vaultId, vault, vault.shares)
+  } catch {
+    /* fall through to ledger_entry */
+  }
+  try {
+    const res: any = await client.request({
+      command: 'ledger_entry',
+      index: vaultId,
+      ledger_index: 'validated'
+    } as any)
+    const node = res.result.node
+    if (!node || node.LedgerEntryType !== 'Vault') {
+      throw new XrplLabError('vault_info', `tecNO_ENTRY: Vault ${vaultId} not found`)
     }
+    const fromEntry = vaultFromNode(vaultId, node)
+    if (!fromInfo) return fromEntry
+    return {
+      ...fromInfo,
+      vaultKind: fromEntry.vaultKind || fromInfo.vaultKind,
+      subscriptionDate: fromEntry.subscriptionDate ?? fromInfo.subscriptionDate,
+      redemptionDate: fromEntry.redemptionDate ?? fromInfo.redemptionDate,
+      subscriptionIso: fromEntry.subscriptionIso !== '—' ? fromEntry.subscriptionIso : fromInfo.subscriptionIso,
+      redemptionIso: fromEntry.redemptionIso !== '—' ? fromEntry.redemptionIso : fromInfo.redemptionIso
+    }
+  } catch (e) {
+    if (fromInfo) return fromInfo
+    throw new XrplLabError('vault_info', e)
   }
 }
 
 export async function createVault(
   owner: Wallet,
-  opts: { assetsMaximumXrp: string; data?: string }
+  opts: {
+    assetsMaximumXrp: string
+    data?: string
+    closedEnded?: boolean
+    subscriptionDate?: number
+    redemptionDate?: number
+  } = { assetsMaximumXrp: '100000' }
 ) {
+  const closedEnded = opts.closedEnded !== false
   const tx: any = {
     TransactionType: 'VaultCreate',
     Account: owner.address,
@@ -313,8 +386,18 @@ export async function createVault(
     WithdrawalPolicy: 1,
     Data: opts.data ? convertStringToHex(opts.data) : undefined
   }
+  if (closedEnded) {
+    const now = await fetchRippleTime()
+    const subscriptionDate = opts.subscriptionDate ?? now + LAB_SUBSCRIPTION_LEAD_SECONDS
+    const redemptionDate =
+      opts.redemptionDate ?? subscriptionDate + CLOSED_ENDED_MIN_INVESTMENT_SECONDS
+    tx.VaultKind = VAULT_KIND_CLOSED_ENDED
+    tx.SubscriptionDate = subscriptionDate
+    tx.RedemptionDate = redemptionDate
+  }
   const { receipt, meta } = await submitSigned(owner, tx, 'VaultCreate', {
-    feeDrops: OBJECT_CREATE_FEE_DROPS
+    feeDrops: OBJECT_CREATE_FEE_DROPS,
+    lendingCodec: closedEnded
   })
   const created = createdOf(meta, 'Vault')
   const vaultId = created?.LedgerIndex as string
@@ -322,6 +405,12 @@ export async function createVault(
     throw new XrplLabError('VaultCreate', 'tesSUCCESS but no Vault object in metadata', receipt as any)
   }
   const info = await fetchVault(vaultId)
+  if (closedEnded && info.vaultKind !== VAULT_KIND_CLOSED_ENDED) {
+    throw new XrplLabError(
+      'VaultCreate',
+      `Vault exists but VaultKind is ${info.vaultKind} (expected closed-ended ${VAULT_KIND_CLOSED_ENDED}). The binary codec likely dropped VaultKind.`
+    )
+  }
   return {
     vaultId,
     shareMptId: info.shareMptId || (created?.NewFields?.ShareMPTID as string),
@@ -597,7 +686,10 @@ export async function createLoan(
     InterestRate: opts.interestRateBps10,
     PaymentTotal: opts.paymentTotal,
     PaymentInterval: opts.paymentIntervalSeconds,
-    GracePeriod: opts.gracePeriodSeconds ?? 604800,
+    GracePeriod:
+      opts.gracePeriodSeconds != null && opts.gracePeriodSeconds > 0
+        ? opts.gracePeriodSeconds
+        : undefined,
     LoanOriginationFee: opts.originationFeeXrp ? xrpAmountToDrops(opts.originationFeeXrp) : undefined,
     LoanServiceFee: opts.serviceFeeXrp ? xrpAmountToDrops(opts.serviceFeeXrp) : undefined
   }

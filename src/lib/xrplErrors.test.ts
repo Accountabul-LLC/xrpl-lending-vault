@@ -22,7 +22,16 @@ describe('interpretXrplError', () => {
     expect(g.category === 'NETWORK' || g.category === 'EXTERNAL DEVNET FAILURE').toBe(true)
   })
 
-  it('extracts nested tec codes from wrapped errors', () => {
-    expect(extractResultCode('LoanPay failed: tecINSUFFICIENT_FUNDS')).toBe('tecINSUFFICIENT_FUNDS')
+  it('explains LoanBrokerSet tecNO_PERMISSION as closed-ended vault requirement (DEVNET-001)', () => {
+    const g = interpretXrplError(new Error('LoanBrokerSet failed: tecNO_PERMISSION'), 'LoanBrokerSet')
+    expect(g.code).toBe('tecNO_PERMISSION')
+    expect(g.meaning.toLowerCase()).toMatch(/closed-ended/)
+    expect(g.fix.toLowerCase()).toMatch(/vaultkind/)
+  })
+
+  it('explains VaultWithdraw tecTOO_SOON as investment-phase lock', () => {
+    const g = interpretXrplError(new Error('VaultWithdraw failed: tecTOO_SOON'), 'VaultWithdraw')
+    expect(g.meaning.toLowerCase()).toMatch(/investment/)
+    expect(g.fix.toLowerCase()).toMatch(/redemptiondate/)
   })
 })

@@ -25,7 +25,7 @@ export const STEP_META: Record<
     short: 'CREATE VAULT',
     wallet: 'Vault Owner / Loan Broker',
     explanation:
-      'The vault is the on-ledger pool that holds one asset and receives deposits from liquidity providers. XRPL Single Asset Vaults can hold one asset type, such as XRP, a trust-line token, or an MPT.',
+      'The vault is the on-ledger pool that holds one asset and receives deposits from liquidity providers. This lab creates a public closed-ended XRP vault (VaultKind=1). LendingProtocolV1_1 only allows a LoanBroker to attach to a closed-ended vault.',
     txType: 'VaultCreate'
   },
   3: {
@@ -85,6 +85,8 @@ export interface Check {
   detail?: string
 }
 
+export type VaultPhaseState = 'open-ended' | 'subscription' | 'investment' | 'redemption' | 'unknown'
+
 export interface LabSnapshot {
   ownerAddress?: string
   depositorAddress?: string
@@ -99,6 +101,10 @@ export interface LabSnapshot {
   vaultId?: string
   vaultPrivate: boolean
   vaultAsset: string
+  vaultKind: number
+  vaultPhase: VaultPhaseState
+  subscriptionDate?: number
+  redemptionDate?: number
   assetsTotal: number
   assetsAvailable: number
   assetsMaximum: number
@@ -181,12 +187,31 @@ export function checksForStep(id: StepId, s: LabSnapshot): Check[] {
             !s.vaultExists ||
             s.assetsMaximum <= 0 ||
             s.assetsTotal + s.depositAmount <= s.assetsMaximum
+        },
+        {
+          id: 'phase',
+          label: 'Vault in subscription phase (or open-ended)',
+          met: !s.vaultExists || s.vaultPhase === 'subscription' || s.vaultPhase === 'open-ended',
+          detail:
+            s.vaultPhase === 'investment'
+              ? 'MISSING — deposits close after SubscriptionDate'
+              : s.vaultPhase === 'redemption'
+                ? 'MISSING — vault is in redemption'
+                : s.vaultPhase === 'subscription'
+                  ? 'YES'
+                  : s.vaultPhase
         }
       ]
     case 4:
       return [
         { id: 'wallets', label: 'Wallets funded', met: allFunded(s) },
         { id: 'vault', label: 'Vault created', met: s.vaultExists },
+        {
+          id: 'closed',
+          label: 'Vault is closed-ended (VaultKind=1)',
+          met: !s.vaultExists || s.vaultKind === 1,
+          detail: s.vaultKind === 1 ? 'YES' : `NO (VaultKind=${s.vaultKind})`
+        },
         { id: 'owner', label: 'Vault owner available to sign LoanBrokerSet', met: Boolean(s.ownerAddress) }
       ]
     case 5:
@@ -199,7 +224,20 @@ export function checksForStep(id: StepId, s: LabSnapshot): Check[] {
           met: s.assetsTotal > 0 && s.depositorShares > 0
         },
         { id: 'broker', label: 'Loan Broker created', met: s.brokerExists },
-        { id: 'borrower', label: 'Borrower wallet ready to cosign', met: Boolean(s.borrowerAddress) }
+        { id: 'borrower', label: 'Borrower wallet ready to cosign', met: Boolean(s.borrowerAddress) },
+        {
+          id: 'phase',
+          label: 'Vault in investment phase',
+          met: !s.vaultExists || s.vaultPhase === 'investment' || s.vaultPhase === 'open-ended',
+          detail:
+            s.vaultPhase === 'subscription'
+              ? 'NOT READY — wait until after SubscriptionDate'
+              : s.vaultPhase === 'redemption'
+                ? 'TOO LATE — vault is in redemption'
+                : s.vaultPhase === 'investment'
+                  ? 'YES'
+                  : s.vaultPhase
+        }
       ]
     case 6:
       return [
@@ -215,6 +253,19 @@ export function checksForStep(id: StepId, s: LabSnapshot): Check[] {
           label: 'Requested withdrawal ≤ assets available',
           met: s.assetsAvailable + 1e-9 >= s.withdrawAmount && s.withdrawAmount > 0,
           detail: `${s.assetsAvailable} XRP available`
+        },
+        {
+          id: 'phase',
+          label: 'Vault in redemption phase (or open-ended)',
+          met: !s.vaultExists || s.vaultPhase === 'redemption' || s.vaultPhase === 'open-ended',
+          detail:
+            s.vaultPhase === 'investment'
+              ? 'NOT READY — wait until RedemptionDate (tecTOO_SOON during investment)'
+              : s.vaultPhase === 'subscription'
+                ? 'Wait until redemption (after the investment window)'
+                : s.vaultPhase === 'redemption'
+                  ? 'YES'
+                  : s.vaultPhase
         }
       ]
     case 8:
@@ -281,17 +332,17 @@ export function nextActionFor(id: StepId, status: StepStatus, s: LabSnapshot): s
     case 1:
       return 'Fund all required DevNet wallets, then confirm balances from the ledger.'
     case 2:
-      return 'Configure the public XRP vault and submit VaultCreate as the vault owner.'
+      return 'Configure the public closed-ended XRP vault (VaultKind=1, AssetsMaximum, SubscriptionDate, RedemptionDate) and submit VaultCreate as the vault owner.'
     case 3:
-      return 'Submit VaultDeposit from the depositor wallet.'
+      return 'Submit VaultDeposit from the depositor wallet during the subscription phase.'
     case 4:
-      return 'Submit LoanBrokerSet as the vault owner to initialize the protocol loan book.'
+      return 'Submit LoanBrokerSet as the vault owner to initialize the protocol loan book on this closed-ended vault.'
     case 5:
-      return 'Have the loan broker sign LoanSet, then the borrower cosigns, then submit.'
+      return 'Wait until the investment phase, then have the loan broker sign LoanSet and the borrower cosign.'
     case 6:
       return 'Submit LoanPay from the borrower for the required periodic payment.'
     case 7:
-      return 'Submit VaultWithdraw from the depositor for an amount ≤ Assets Available.'
+      return 'Wait until RedemptionDate, then submit VaultWithdraw from the depositor for an amount ≤ Assets Available.'
     case 8:
       return 'Refresh vault, broker, loan, and balances from the validated ledger.'
   }
@@ -308,6 +359,8 @@ export function emptySnapshot(partial?: Partial<LabSnapshot>): LabSnapshot {
     vaultExists: false,
     vaultPrivate: false,
     vaultAsset: 'XRP',
+    vaultKind: 0,
+    vaultPhase: 'unknown',
     assetsTotal: 0,
     assetsAvailable: 0,
     assetsMaximum: 0,
