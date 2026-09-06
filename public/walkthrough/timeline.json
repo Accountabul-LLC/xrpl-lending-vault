@@ -1,0 +1,208 @@
+{
+  "totalMs": 612624,
+  "scenes": [
+    {
+      "id": "opening",
+      "startMs": 0,
+      "durationMs": 32256,
+      "caption": "Welcome to the Accountabul Lending Protocol Live DevNet Lab. DevNet assets only \u2014 nothing here is real money.",
+      "voiceText": "Welcome to the Accountabul Lending Protocol Live DevNet Lab. In this walkthrough, we're going to build a complete lending environment using the XRP Ledger DevNet. We'll fund the accounts, create a lending vault, add liquidity, initialize the lending protocol, originate a loan, make a payment, withdraw funds, and verify what happened directly on the XRP Ledger. This environment uses DevNet assets only. Nothing shown here represents real money."
+    },
+    {
+      "id": "step1_intro",
+      "startMs": 32706,
+      "durationMs": 12672,
+      "caption": "STEP 1 OF 8 \u2014 Fund the required wallets. Every XRPL account needs XRP for reserves and fees.",
+      "voiceText": "Step one: fund the required wallets. Every action in this lab is signed by an XRP Ledger account, so those accounts must exist and hold enough XRP before we begin."
+    },
+    {
+      "id": "step1_owner",
+      "startMs": 45828,
+      "durationMs": 8448,
+      "caption": "Vault Owner / Loan Broker \u2014 creates the vault and manages the Loan Broker.",
+      "voiceText": "The first wallet represents the operator of the lending infrastructure. This account creates the vault and manages the Loan Broker."
+    },
+    {
+      "id": "step1_depositor",
+      "startMs": 54726,
+      "durationMs": 8760,
+      "caption": "Depositor \u2014 provides liquidity and receives vault shares, not ownership of the vault.",
+      "voiceText": "The depositor is the person providing liquidity. They place assets into the vault and receive vault shares representing their position."
+    },
+    {
+      "id": "step1_borrower",
+      "startMs": 63936,
+      "durationMs": 7776,
+      "caption": "Borrower \u2014 receives capital and repays according to the agreed terms.",
+      "voiceText": "The borrower receives capital through a loan and is responsible for repaying that loan according to the agreed terms."
+    },
+    {
+      "id": "step1_fund",
+      "startMs": 72162,
+      "durationMs": 30288,
+      "caption": "Fund All Wallets. Not Funded becomes Funded after the ledger verifies the faucet drop.",
+      "voiceText": "Press Fund All Wallets. Watch each account change from Not Funded to Funded. Every XRPL account needs sufficient XRP for ledger reserves and transaction fees before it can participate. The application verifies funding on the ledger. It does not guess. On live DevNet, faucet balances are smaller than the round teaching amounts in this video \u2014 size your deposits to the wallet you actually funded. The sequence stays the same."
+    },
+    {
+      "id": "reset",
+      "startMs": 102900,
+      "durationMs": 22344,
+      "caption": "Reset DevNet Lab clears the browser session. New session \u2260 erase ledger.",
+      "voiceText": "Before we continue, notice Reset DevNet Lab. Resetting the Lab clears the application's current testing session, including cached vault IDs, loan IDs, and progress. It does not erase transactions that were already validated on the XRP Ledger. A new session is not the same thing as erasing the ledger."
+    },
+    {
+      "id": "step2_intro",
+      "startMs": 125694,
+      "durationMs": 13440,
+      "caption": "STEP 2 OF 8 \u2014 Create the lending vault. One pool. One asset. Shares for depositors.",
+      "voiceText": "Step two: create the lending vault. Think of the vault as a pool where depositors place one specific asset. The vault maintains the pooled capital and issues shares to depositors."
+    },
+    {
+      "id": "step2_asset",
+      "startMs": 139584,
+      "durationMs": 11088,
+      "caption": "Vault Asset = XRP. A single-asset vault does not mix currencies.",
+      "voiceText": "Vault Asset is the single currency this vault is allowed to hold. In this lab, that asset is XRP on DevNet. A vault does not mix assets."
+    },
+    {
+      "id": "step2_capacity",
+      "startMs": 151122,
+      "durationMs": 14616,
+      "caption": "Maximum Capacity: 100,000 \u2014 deposits cannot exceed this ceiling.",
+      "voiceText": "Maximum Capacity defines how much of the selected asset this vault is allowed to hold. For example, if the maximum capacity is one hundred thousand units, deposits cannot push the vault beyond that amount."
+    },
+    {
+      "id": "step2_create",
+      "startMs": 166188,
+      "durationMs": 30816,
+      "caption": "Create Vault \u2192 Preparing \u2192 Signing \u2192 Submitting \u2192 Validating \u2192 tesSUCCESS. Verify the Vault object on DevNet.",
+      "voiceText": "Click Create Vault. The transaction moves through Preparing, Signing, Submitting, and Validating. We do not call it successful until the ledger returns tesSUCCESS \u2014 that means the transaction was fully validated. We do not consider the step complete simply because the button was clicked. The application verifies that the Vault object actually exists on DevNet, then shows the Vault ID, owner, asset, capacity, and the current totals."
+    },
+    {
+      "id": "step3_intro",
+      "startMs": 197454,
+      "durationMs": 18552,
+      "caption": "STEP 3 OF 8 \u2014 Deposit liquidity. The lab checks vault, funding, asset, and remaining capacity first.",
+      "voiceText": "Step three: deposit liquidity. Now the depositor supplies capital to the vault. Before submitting the deposit, the application checks that the vault exists, the depositor is funded, the depositor owns the correct asset, and the vault still has enough capacity."
+    },
+    {
+      "id": "step3_deposit",
+      "startMs": 216456,
+      "durationMs": 13080,
+      "caption": "Deposit 10,000. Before: vault assets 0. After tesSUCCESS: vault assets 10,000.",
+      "voiceText": "We'll deposit ten thousand. Before the deposit, vault assets are zero. Press Deposit, then wait for validation. After tesSUCCESS, vault assets are ten thousand."
+    },
+    {
+      "id": "step3_shares",
+      "startMs": 229986,
+      "durationMs": 24096,
+      "caption": "Depositor \u2192 Assets \u2192 Vault \u2192 Vault Shares \u2192 Depositor. Shares are a claim on the pool, not a guaranteed return.",
+      "voiceText": "The depositor does not simply send money into an account and lose track of it. The vault issues shares representing the depositor's proportional position in the pooled assets. Follow the path: the depositor sends assets into the vault, and the vault returns shares to the depositor. Those shares are a claim on the pool \u2014 not a promised investment return."
+    },
+    {
+      "id": "step4_explain",
+      "startMs": 254532,
+      "durationMs": 31776,
+      "caption": "Protocol Loan Book = application view. LoanBroker = XRPL protocol object.",
+      "voiceText": "Step four is important. Inside the Accountabul interface, you may see the term Protocol Loan Book. That is our application view of the lending activity connected to the vault. On the XRP Ledger, the native object we create here is called the Loan Broker. The Protocol Loan Book is the application view. The LoanBroker is the XRPL protocol object. The Loan Broker connects the vault to individual loans and manages lending configuration and associated debt."
+    },
+    {
+      "id": "step4_create",
+      "startMs": 286758,
+      "durationMs": 27120,
+      "caption": "Create Loan Broker. Empty book: No loans yet. Originate your first loan.",
+      "voiceText": "Click Create Loan Broker. After the transaction validates, we see the Loan Broker ID, the linked Vault ID, the broker account, and the management fee. First-loss cover can also be configured here if the operator wants an extra loss buffer. If the loan book is empty, the lab says so clearly: no loans yet. Originate your first loan. You should never be left staring at a blank screen."
+    },
+    {
+      "id": "step5_intro",
+      "startMs": 314328,
+      "durationMs": 6576,
+      "caption": "STEP 5 OF 8 \u2014 Originate a loan. The borrower requests capital from the vault via the Loan Broker.",
+      "voiceText": "Step five: originate a loan. The borrower can now request capital from the lending environment."
+    },
+    {
+      "id": "step5_terms",
+      "startMs": 321354,
+      "durationMs": 19488,
+      "caption": "Principal 10,000 \u00b7 APR 10% \u00b7 Term 12 months \u00b7 Payment frequency monthly.",
+      "voiceText": "We'll use example terms. Principal is ten thousand \u2014 that is the amount being borrowed. APR is ten percent \u2014 the annualized interest rate. The term is twelve months \u2014 how long the borrower has to repay. Payment frequency is monthly \u2014 that determines when payments are due."
+    },
+    {
+      "id": "step5_sign",
+      "startMs": 341292,
+      "durationMs": 14760,
+      "caption": "Loan Broker signs, then Borrower signs. Both must agree before LoanSet is submitted.",
+      "voiceText": "Creating the native XRPL Loan requires agreement between the Loan Broker and the Borrower. Both parties sign the loan terms before the transaction is submitted. First the Loan Broker signs, then the Borrower signs."
+    },
+    {
+      "id": "step5_originate",
+      "startMs": 356502,
+      "durationMs": 27456,
+      "caption": "Originate Loan \u2192 LoanSet \u2192 tesSUCCESS. Vault \u2192 Loan \u2192 Borrower. Available assets fall.",
+      "voiceText": "Click Originate Loan. The transaction type is LoanSet. Only after tesSUCCESS do we treat the loan as live. Then we can see the Loan ID, borrower, principal, APR, outstanding principal, payment amount, next payment, and status. Capital now moves from the vault, through the loan, to the borrower. The vault's available assets fall because that capital is committed to lending."
+    },
+    {
+      "id": "step6_intro",
+      "startMs": 384408,
+      "durationMs": 11472,
+      "caption": "STEP 6 OF 8 \u2014 Make a loan payment. Outstanding principal 10,000. A payment is due.",
+      "voiceText": "Step six: make a loan payment. After the loan is active, the borrower begins making payments. Outstanding principal is ten thousand, and a monthly payment is due."
+    },
+    {
+      "id": "step6_pay",
+      "startMs": 396330,
+      "durationMs": 32616,
+      "caption": "Borrower \u2192 Loan \u2192 Vault. Principal reduces the balance. Interest is the cost of borrowing \u2014 not a guaranteed return.",
+      "voiceText": "Press Make Payment. Watch the money move from the borrower, into the loan, and back toward the vault. Part of the payment reduces principal, while another portion represents interest. Interest is the cost of borrowing. It is not a guaranteed depositor return, and it only exists after a validated repayment. Once the transaction validates, the Lab queries the Loan again so we can see exactly what changed: outstanding principal, payments remaining, and the next payment date."
+    },
+    {
+      "id": "step7_intro",
+      "startMs": 429396,
+      "durationMs": 21600,
+      "caption": "STEP 7 OF 8 \u2014 Withdraw. Assets Total \u2260 Assets Available. Only available liquidity can be redeemed.",
+      "voiceText": "Step seven: withdraw from the vault. Depositors can redeem their vault shares for available underlying assets. Total assets and available assets are not always the same. Some of the vault's capital may currently be committed to lending activity. You can only withdraw from what is available \u2014 not from what is still out on loan."
+    },
+    {
+      "id": "step7_withdraw",
+      "startMs": 451446,
+      "durationMs": 20976,
+      "caption": "Vault Shares \u2192 Vault \u2192 Assets \u2192 Depositor. Redeem shares for available assets only.",
+      "voiceText": "We'll review the depositor's vault shares, the available liquidity, and the requested withdrawal, then click Withdraw. Shares go back to the vault, and assets return to the depositor. After validation, we check the updated share balance, the depositor's asset balance, and the vault's remaining liquidity."
+    },
+    {
+      "id": "error",
+      "startMs": 472872,
+      "durationMs": 32136,
+      "caption": "Deposit Failed \u00b7 tecNO_AUTH \u00b7 The account is not authorized for this action. Read the code, then fix, then retry.",
+      "voiceText": "When something fails, the Lab should never stop at Something went wrong. It should show the XRPL result code, explain what that code means, and tell the user how to fix the problem. Here is a controlled example: Deposit Failed, with result code tecNO_AUTH. That code means the account is not authorized for this action. The recommended action is to confirm the account has the required authorization, then retry. Always read the code before repeating the same click."
+    },
+    {
+      "id": "step8_dash",
+      "startMs": 505458,
+      "durationMs": 34560,
+      "caption": "STEP 8 OF 8 \u2014 Verify the ledger. Confirm the interface and the XRP Ledger agree.",
+      "voiceText": "Step eight: verify the ledger. At the end of the workflow, the application verifies the final state against the XRP Ledger. This lets us confirm that the interface and the ledger agree. We review the vault: ID, total assets, available assets, and maximum capacity. The depositor: vault shares, deposits, and withdrawals. The Loan Broker: ID and active loans. And the borrower: loan ID, outstanding principal, payments made, and status."
+    },
+    {
+      "id": "step8_tech",
+      "startMs": 540468,
+      "durationMs": 14184,
+      "caption": "View Technical Details: hash, ledger index, type, result, validated. Proof lives on the ledger.",
+      "voiceText": "Open View Technical Details to inspect the transaction hash, ledger index, transaction type, result, and validated status. A hash on a validated ledger is the proof. A button click is not."
+    },
+    {
+      "id": "order",
+      "startMs": 555102,
+      "durationMs": 26664,
+      "caption": "Correct order: Fund \u2192 Vault \u2192 Deposit \u2192 Loan Broker \u2192 Originate \u2192 Pay \u2192 Withdraw \u2192 Verify.",
+      "voiceText": "To complete the entire workflow in the correct order: fund the wallets first, then create the vault, then deposit liquidity, then create the Loan Broker, then originate the loan, then make a payment, then withdraw available funds, then verify the ledger. Each step depends on the one before it. Skipping a dependency is the most common reason a later transaction fails."
+    },
+    {
+      "id": "recap",
+      "startMs": 582216,
+      "durationMs": 29904,
+      "caption": "Fund \u2192 Vault \u2192 Deposit \u2192 Loan Broker \u2192 Originate \u2192 Pay \u2192 Withdraw \u2192 Verify. Learn it. Test it. Verify it on XRPL.",
+      "voiceText": "That's the complete Live DevNet lending lifecycle. We started with empty DevNet accounts and ended with a funded vault, a Loan Broker, an active loan, a repayment, a vault withdrawal, and ledger-verified results. The goal of the Lab is not just to execute transactions. It's to help you understand what each participant is doing and how every step connects to the next. Learn it. Test it. Verify it on XRPL."
+    }
+  ]
+}

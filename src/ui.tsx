@@ -20,7 +20,7 @@ export function Stat({ label, value }: { label: string; value: string }) {
   )
 }
 
-export function Btn(props: ButtonHTMLAttributes<HTMLButtonElement>) {
+export function Btn(props: ButtonHTMLAttributes<HTMLButtonElement> & { 'data-lab'?: string }) {
   return (
     <button
       type="button"

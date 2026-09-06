@@ -11,17 +11,28 @@ npm install
 npm run dev
 ```
 
-Site: `http://localhost:5173` (Academy first, then **Live DevNet lab**)  
+Site: `http://localhost:5173` (Academy first, then **Live DevNet lab**, then Walkthrough)  
 Ledger: `wss://s.devnet.rippletest.net:51233` — the UI banners **NETWORK: XRPL DEVNET**. These are test assets, not Mainnet.
 
-The lab is an 8-step guided workflow: Fund wallets → Create vault → Deposit → Create Loan Broker (initialize the Protocol Loan Book) → Originate loan → Pay → Withdraw → Verify. Buttons stay disabled until prerequisites are met and show **why**. Reset Session clears local browser state only; it does not rewind XRPL DevNet.
+The lab is an 8-step guided workflow: Fund wallets → Create vault → Deposit → Create Loan Broker (initialize the Protocol Loan Book) → Originate loan → Pay → Withdraw → Verify. Buttons stay disabled until prerequisites are met and show **why**. **Reset DevNet Lab** clears local browser state only; it does not rewind XRPL DevNet or erase validated ledger history. Never paste a mainnet seed.
 
-DevNet faucet wallets and object IDs persist in `localStorage` so a refresh does not wipe the session. Never paste a mainnet seed.
+DevNet faucet wallets and object IDs persist in `localStorage` so a refresh does not wipe the session.
 
 ```bash
 npm test              # unit / regression tests
 npm run test:devnet   # 20 consecutive live DevNet lifecycle runs
 ```
+
+## Walkthrough video
+
+The in-app **Walkthrough** (also linked from the Lab) is a ~10 minute narrated training session covering the full lending lifecycle: fund wallets, create the vault, deposit, create the Loan Broker, originate, pay, withdraw, and verify on XRPL.
+
+- Watch: `http://localhost:5173/?view=walkthrough`
+- Narration: `public/walkthrough/narration.mp3`
+- Rebuild audio: `npm run narration`
+- Record 1080p MP4: `npm run record:walkthrough`
+
+DevNet assets have no real monetary value. The **Protocol Loan Book** is the Accountabul UI; **LoanBroker** is the native XRPL object.
 
 ## Verified live on Devnet
 

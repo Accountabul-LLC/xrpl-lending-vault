@@ -96,7 +96,7 @@ function walletsFromSeeds(seeds: Session['seeds']): Record<Role, Wallet | null> 
 
 type Guidance = (ErrorGuidance & { whatFailed: string; raw?: string }) | null
 
-export default function DevnetLab() {
+export default function DevnetLab({ onOpenWalkthrough }: { onOpenWalkthrough?: () => void }) {
   const [session] = useState(loadSession)
   const [wallets, setWallets] = useState<Record<Role, Wallet | null>>(() =>
     walletsFromSeeds(session.seeds)
@@ -612,6 +612,26 @@ export default function DevnetLab() {
         </div>
         <div className="font-mono text-[11px] text-amber-200/80 break-all">{DEVNET_WSS}</div>
       </div>
+
+      {onOpenWalkthrough && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-500/25 bg-indigo-950/30 px-4 py-3">
+          <div>
+            <div className="text-sm font-semibold text-slate-100">
+              Accountabul Lending Protocol walkthrough
+            </div>
+            <div className="text-xs text-slate-400">
+              Ten-minute guided tour — funding, vault, deposits, loans, payments, withdrawals.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onOpenWalkthrough}
+            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-sm font-medium"
+          >
+            Watch walkthrough
+          </button>
+        </div>
+      )}
 
       <header className="space-y-2">
         <h1 className="text-2xl font-bold">LIVE DEVNET WORKFLOW</h1>

@@ -20,15 +20,15 @@ export const COLORS = {
 } as const
 
 export const ENTITY_POSITIONS: Record<EntityId, [number, number, number]> = {
-  protocol: [0, 3.4, 0],
-  vault: [0, 0.35, 0],
-  depositor: [-4.2, -1.1, 0.4],
-  borrower: [4.2, -1.1, 0.4],
-  guarantor: [4.2, 1.4, -1.2],
-  broker: [-2.2, -2.6, 0.8],
-  underwriter: [2.2, 2.2, -0.8],
-  servicer: [0, -2.8, 1.2],
-  custodian: [-4.2, 1.6, -1]
+  protocol: [0, -2.4, -2.2],
+  vault: [0, -2.4, 0.2],
+  depositor: [-3.65, -2.4, 0.55],
+  borrower: [3.65, -2.4, 0.55],
+  guarantor: [4.7, -2.4, -1.35],
+  broker: [-1.55, -2.4, -2.2],
+  underwriter: [1.55, -2.4, -2.2],
+  servicer: [0, -2.4, 2.35],
+  custodian: [-4.55, -2.4, -1.35]
 }
 
 export type CameraPreset = {
@@ -38,14 +38,14 @@ export type CameraPreset = {
 }
 
 export const LESSON_CAMERAS: Record<number, CameraPreset> = {
-  0: { position: [0, 2.2, 11.5], lookAt: [0, 0.4, 0] },
-  1: { position: [0.4, 1.4, 7.2], lookAt: [0, 0.5, 0] },
-  2: { position: [-3.2, 1.2, 8], lookAt: [-2, -0.2, 0] },
-  3: { position: [3.2, 1.2, 8], lookAt: [2, -0.2, 0] },
-  4: { position: [0, 1.8, 10], lookAt: [0, 0.2, 0] },
-  5: { position: [0, 2.4, 11], lookAt: [0, 0.3, 0] },
-  6: { position: [1.5, 2.6, 10.5], lookAt: [0.5, 0, 0] },
-  7: { position: [0, 3, 12.5], lookAt: [0, 0.2, 0] }
+  0: { position: [0, 2.6, 10.4], lookAt: [0, -0.55, 0] },
+  1: { position: [0.9, 2.15, 7.6], lookAt: [0.25, -0.7, -0.4] },
+  2: { position: [-2.7, 2.05, 7.8], lookAt: [-1.5, -0.85, 0.2] },
+  3: { position: [2.35, 2.2, 8.1], lookAt: [1.15, -0.65, -0.35] },
+  4: { position: [1.85, 2.1, 8.3], lookAt: [1.2, -0.55, 0.05] },
+  5: { position: [0, 3.15, 11.1], lookAt: [0, -0.5, 0] },
+  6: { position: [1.15, 2.75, 10.2], lookAt: [0.35, -0.6, 0] },
+  7: { position: [0, 3.45, 12.1], lookAt: [0, -0.45, 0] }
 }
 
 export const FLOW_COLORS: Record<FlowKind, number> = {
@@ -63,13 +63,13 @@ export function lessonFocusEntities(lesson: number): EntityId[] {
     case 0:
       return ['protocol', 'depositor', 'borrower', 'vault']
     case 1:
-      return ['vault', 'protocol']
+      return ['protocol', 'vault']
     case 2:
       return ['depositor', 'vault']
     case 3:
-      return ['vault', 'borrower']
+      return ['protocol', 'vault']
     case 4:
-      return ['borrower', 'vault']
+      return ['borrower', 'protocol', 'vault']
     case 5:
       return ['depositor', 'vault', 'borrower', 'protocol']
     case 6:

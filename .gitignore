@@ -4,3 +4,8 @@ dist
 *.local
 *.tsbuildinfo
 .vercel
+public/walkthrough/parts
+public/walkthrough/concat.txt
+public/walkthrough/silence.mp3
+public/walkthrough/*.mp4
+tmp-walkthrough-video

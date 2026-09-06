@@ -1,0 +1,116 @@
+1
+00:00:00,000 --> 00:00:32,256
+Welcome to the Accountabul Lending Protocol Live DevNet Lab. DevNet assets only — nothing here is real money.
+
+2
+00:00:32,706 --> 00:00:45,378
+STEP 1 OF 8 — Fund the required wallets. Every XRPL account needs XRP for reserves and fees.
+
+3
+00:00:45,828 --> 00:00:54,276
+Vault Owner / Loan Broker — creates the vault and manages the Loan Broker.
+
+4
+00:00:54,726 --> 00:01:03,486
+Depositor — provides liquidity and receives vault shares, not ownership of the vault.
+
+5
+00:01:03,936 --> 00:01:11,712
+Borrower — receives capital and repays according to the agreed terms.
+
+6
+00:01:12,162 --> 00:01:42,450
+Fund All Wallets. Not Funded becomes Funded after the ledger verifies the faucet drop.
+
+7
+00:01:42,900 --> 00:02:05,244
+Reset DevNet Lab clears the browser session. New session ≠ erase ledger.
+
+8
+00:02:05,694 --> 00:02:19,134
+STEP 2 OF 8 — Create the lending vault. One pool. One asset. Shares for depositors.
+
+9
+00:02:19,584 --> 00:02:30,672
+Vault Asset = XRP. A single-asset vault does not mix currencies.
+
+10
+00:02:31,122 --> 00:02:45,738
+Maximum Capacity: 100,000 — deposits cannot exceed this ceiling.
+
+11
+00:02:46,188 --> 00:03:17,004
+Create Vault → Preparing → Signing → Submitting → Validating → tesSUCCESS. Verify the Vault object on DevNet.
+
+12
+00:03:17,454 --> 00:03:36,006
+STEP 3 OF 8 — Deposit liquidity. The lab checks vault, funding, asset, and remaining capacity first.
+
+13
+00:03:36,456 --> 00:03:49,536
+Deposit 10,000. Before: vault assets 0. After tesSUCCESS: vault assets 10,000.
+
+14
+00:03:49,986 --> 00:04:14,082
+Depositor → Assets → Vault → Vault Shares → Depositor. Shares are a claim on the pool, not a guaranteed return.
+
+15
+00:04:14,532 --> 00:04:46,308
+Protocol Loan Book = application view. LoanBroker = XRPL protocol object.
+
+16
+00:04:46,758 --> 00:05:13,878
+Create Loan Broker. Empty book: No loans yet. Originate your first loan.
+
+17
+00:05:14,328 --> 00:05:20,904
+STEP 5 OF 8 — Originate a loan. The borrower requests capital from the vault via the Loan Broker.
+
+18
+00:05:21,354 --> 00:05:40,842
+Principal 10,000 · APR 10% · Term 12 months · Payment frequency monthly.
+
+19
+00:05:41,292 --> 00:05:56,052
+Loan Broker signs, then Borrower signs. Both must agree before LoanSet is submitted.
+
+20
+00:05:56,502 --> 00:06:23,958
+Originate Loan → LoanSet → tesSUCCESS. Vault → Loan → Borrower. Available assets fall.
+
+21
+00:06:24,408 --> 00:06:35,880
+STEP 6 OF 8 — Make a loan payment. Outstanding principal 10,000. A payment is due.
+
+22
+00:06:36,330 --> 00:07:08,946
+Borrower → Loan → Vault. Principal reduces the balance. Interest is the cost of borrowing — not a guaranteed return.
+
+23
+00:07:09,396 --> 00:07:30,996
+STEP 7 OF 8 — Withdraw. Assets Total ≠ Assets Available. Only available liquidity can be redeemed.
+
+24
+00:07:31,446 --> 00:07:52,422
+Vault Shares → Vault → Assets → Depositor. Redeem shares for available assets only.
+
+25
+00:07:52,872 --> 00:08:25,008
+Deposit Failed · tecNO_AUTH · The account is not authorized for this action. Read the code, then fix, then retry.
+
+26
+00:08:25,458 --> 00:09:00,018
+STEP 8 OF 8 — Verify the ledger. Confirm the interface and the XRP Ledger agree.
+
+27
+00:09:00,468 --> 00:09:14,652
+View Technical Details: hash, ledger index, type, result, validated. Proof lives on the ledger.
+
+28
+00:09:15,102 --> 00:09:41,766
+Correct order: Fund → Vault → Deposit → Loan Broker → Originate → Pay → Withdraw → Verify.
+
+29
+00:09:42,216 --> 00:10:12,120
+Fund → Vault → Deposit → Loan Broker → Originate → Pay → Withdraw → Verify. Learn it. Test it. Verify it on XRPL.
+
