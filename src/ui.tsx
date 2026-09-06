@@ -23,6 +23,7 @@ export function Stat({ label, value }: { label: string; value: string }) {
 export function Btn(props: ButtonHTMLAttributes<HTMLButtonElement>) {
   return (
     <button
+      type="button"
       {...props}
       className={
         'px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed text-sm font-medium transition ' +
