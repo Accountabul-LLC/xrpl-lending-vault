@@ -47,8 +47,8 @@ function labelSprite(text: string, tint: string) {
   const map = new THREE.CanvasTexture(c)
   map.colorSpace = THREE.SRGBColorSpace
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false }))
-  sprite.scale.set(1.55, 0.39, 1)
-  sprite.position.y = 2.05
+  sprite.scale.set(1.85, 0.46, 1)
+  sprite.position.y = 2.25
   sprite.userData.keepOpaque = true
   return sprite
 }
@@ -91,7 +91,7 @@ export function createPerson(
   const group = new THREE.Group()
   group.userData.entityId = id
   group.userData.kind = 'person'
-  const s = options.scale ?? 1
+  const s = options.scale ?? 1.15
   group.scale.setScalar(s)
 
   const skin = std(0xe8c4a8, 0x000000, { roughness: 0.7, metalness: 0.02 })
@@ -99,34 +99,38 @@ export function createPerson(
   const hair = std(options.hair, 0x000000, { roughness: 0.8, metalness: 0 })
   const shoe = std(0x1e293b)
 
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.48, 4, 10), cloth)
-  torso.position.y = 0.98
-  const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.18, 10), cloth)
-  hips.position.y = 0.68
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.17, 18, 16), skin)
-  head.position.y = 1.5
-  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.175, 14, 12, 0, Math.PI * 2, 0, Math.PI / 1.7), hair)
-  hairCap.position.y = 1.56
-  const lLeg = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.42, 3, 8), cloth)
-  lLeg.position.set(-0.1, 0.34, 0)
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.24, 0.42, 4, 12), cloth)
+  torso.position.y = 1.08
+  const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.16, 0.28), cloth)
+  shoulders.position.y = 1.32
+  const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.24, 0.2, 12), cloth)
+  hips.position.y = 0.78
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 10), skin)
+  neck.position.y = 1.42
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 20, 18), skin)
+  head.position.y = 1.62
+  const hairCap = new THREE.Mesh(new THREE.SphereGeometry(0.205, 16, 14, 0, Math.PI * 2, 0, Math.PI / 1.7), hair)
+  hairCap.position.y = 1.68
+  const lLeg = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.46, 3, 8), cloth)
+  lLeg.position.set(-0.12, 0.38, 0)
   const rLeg = lLeg.clone()
-  rLeg.position.x = 0.1
-  const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.24), shoe)
-  lShoe.position.set(-0.1, 0.06, 0.04)
+  rLeg.position.x = 0.12
+  const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.09, 0.28), shoe)
+  lShoe.position.set(-0.12, 0.07, 0.05)
   const rShoe = lShoe.clone()
-  rShoe.position.x = 0.1
-  const lArm = new THREE.Mesh(new THREE.CapsuleGeometry(0.06, 0.38, 3, 8), cloth)
-  lArm.position.set(-0.3, 1.02, 0)
-  lArm.rotation.z = 0.18
+  rShoe.position.x = 0.12
+  const lArm = new THREE.Mesh(new THREE.CapsuleGeometry(0.065, 0.42, 3, 8), cloth)
+  lArm.position.set(-0.36, 1.12, 0)
+  lArm.rotation.z = 0.22
   const rArm = lArm.clone()
-  rArm.position.x = 0.3
-  rArm.rotation.z = -0.18
+  rArm.position.x = 0.36
+  rArm.rotation.z = -0.22
 
-  group.add(torso, hips, head, hairCap, lLeg, rLeg, lShoe, rShoe, lArm, rArm)
+  group.add(torso, shoulders, hips, neck, head, hairCap, lLeg, rLeg, lShoe, rShoe, lArm, rArm)
   group.add(labelSprite(options.label, options.accent))
 
-  const body = hitBox(id, 0.85, 1.85, 0.6, 0.95)
-  const glow = glowSphere(options.cloth, 0.95, 0.95)
+  const body = hitBox(id, 0.95, 2.05, 0.7, 1.05)
+  const glow = glowSphere(options.cloth, 1.05, 1.05)
   group.add(body, glow)
   return { group, body, glow, kind: 'person' }
 }
@@ -159,11 +163,11 @@ export function createVault(): NodeBundle {
   bodyShell.position.y = 0.9
   const top = new THREE.Mesh(new THREE.BoxGeometry(1.78, 0.12, 1.32), trim)
   top.position.y = 1.7
-  const door = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.1, 32), trim)
+  const door = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.14, 32), trim)
   door.rotation.x = Math.PI / 2
   door.position.set(0, 0.95, 0.64)
-  const dial = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.03, 8, 24), gold)
-  dial.position.set(0, 0.95, 0.7)
+  const dial = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.04, 8, 24), gold)
+  dial.position.set(0, 0.95, 0.74)
   const handle = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.28, 0.06), gold)
   handle.position.set(0.22, 0.95, 0.7)
   const feet = [-1, 1].flatMap((x) =>

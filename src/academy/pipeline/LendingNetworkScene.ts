@@ -344,13 +344,13 @@ export class LendingNetworkScene {
     }
     const size = box.getSize(new THREE.Vector3())
     const center = box.getCenter(new THREE.Vector3())
-    const pad = 1.22
-    const maxDim = Math.max(size.x, size.y * 1.1, size.z) * pad
+    const pad = 1.1
+    const maxDim = Math.max(size.x, size.y * 1.05, size.z) * pad
     const fov = ((this.camera.fov ?? 42) * Math.PI) / 180
-    const dist = Math.max(6.2, (maxDim / 2) / Math.tan(fov / 2) + 1.4)
+    const dist = Math.max(5.6, (maxDim / 2) / Math.tan(fov / 2) + 0.8)
     this.targetCam = {
-      position: [center.x, Math.max(1.6, center.y + maxDim * 0.42), center.z + dist],
-      lookAt: [center.x, center.y + 0.15, center.z]
+      position: [center.x, Math.max(1.85, center.y + maxDim * 0.28), center.z + dist * 0.92],
+      lookAt: [center.x, center.y + 0.35, center.z]
     }
     this.camLerp = 0
   }
