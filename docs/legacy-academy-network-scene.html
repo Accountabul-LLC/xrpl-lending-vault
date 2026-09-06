@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Retired Academy visualization — abstract network scene</title>
+  <style>
+    body { font-family: ui-sans-serif, system-ui, sans-serif; color: #0f172a; margin: 48px; line-height: 1.45; }
+    h1 { font-size: 22px; margin: 0 0 8px; }
+    h2 { font-size: 16px; margin: 22px 0 8px; }
+    p, li { font-size: 13px; }
+    code, pre { font-family: ui-monospace, monospace; font-size: 12px; }
+    pre { background: #0b1220; color: #e2e8f0; padding: 16px; border-radius: 8px; }
+    .note { background: #fef3c7; border: 1px solid #f59e0b; padding: 10px 12px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <h1>Retired Academy visualization</h1>
+  <p>This document archives the <strong>legacy Three.js network scene</strong> that previously rendered in JRPU Academy lessons 1–8.</p>
+  <div class="note">
+    Status: <strong>retired from the Academy</strong>. The live Academy uses the entity renderer in
+    <code>src/academy/pipeline/entities.ts</code> (people, vault, loan-broker building, contracts, coins).
+  </div>
+
+  <h2>What the legacy scene showed</h2>
+  <pre>
+Depositor  = green sphere
+Borrower   = orange cylinder / cone
+Vault      = blue box + torus ring
+Protocol   = indigo octahedron
+Links      = TubeGeometry pipes with pulsing spheres
+  </pre>
+
+  <h2>Why it was replaced</h2>
+  <p>Learners had to interpret abstract geometry. The intended visual language is:</p>
+  <ul>
+    <li>Administrator, Depositor, Borrower = people</li>
+    <li>Lending Vault = recognizable vault</li>
+    <li>Loan Broker / Protocol = office / operating entity</li>
+    <li>Rules and loan terms = documents</li>
+    <li>Capital = coins / share tokens traveling along floor paths</li>
+  </ul>
+
+  <h2>Where it lived</h2>
+  <p>Class <code>LendingNetworkScene</code> in <code>src/academy/pipeline/LendingNetworkScene.ts</code> used a local <code>createNode()</code> helper
+    (<code>SphereGeometry</code>, <code>OctahedronGeometry</code>, <code>BoxGeometry</code>, <code>CylinderGeometry</code>) and <code>TubeGeometry</code> pipes.
+    A parallel entity implementation already existed in <code>entities.ts</code> but was never imported — that was the root cause of the wrong scene.</p>
+
+  <h2>Canonical renderer now</h2>
+  <p><code>Academy → LendingPipelineCanvas → SceneMount → LendingNetworkScene</code> builds the world from <code>createPerson</code>, <code>createVault</code>, <code>createProtocolHub</code>, <code>createContractStand</code>, and <code>createCoin</code>. Lesson index only changes camera focus and which props are visible. Lesson 8 uses the same world.</p>
+</body>
+</html>
