@@ -19,13 +19,8 @@ export default function App() {
     []
   )
 
-  if (view === 'walkthrough') {
-    return (
-      <WalkthroughPlayer
-        record={record}
-        onExit={record ? undefined : () => setView('lab')}
-      />
-    )
+  if (record) {
+    return <WalkthroughPlayer record onExit={undefined} />
   }
 
   return (
@@ -45,7 +40,7 @@ export default function App() {
             <span className="sm:hidden">Lab</span>
             <span className="hidden sm:inline">Live DevNet lab</span>
           </NavBtn>
-          <NavBtn active={false} onClick={() => setView('walkthrough')}>
+          <NavBtn active={view === 'walkthrough'} onClick={() => setView('walkthrough')}>
             Walkthrough
           </NavBtn>
         </div>
@@ -54,13 +49,17 @@ export default function App() {
         className={
           view === 'academy'
             ? 'flex-1 min-h-0 min-w-0 w-full px-3 py-3 lg:px-4 lg:py-3'
-            : 'flex-1 min-w-0 w-full max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6'
+            : view === 'walkthrough'
+              ? 'flex-1 min-w-0 w-full max-w-[1680px] mx-auto px-3 py-3 sm:px-5 sm:py-4 overflow-x-clip'
+              : 'flex-1 min-w-0 w-full max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6'
         }
       >
         {view === 'academy' ? (
           <Academy onOpenLab={() => setView('lab')} />
-        ) : (
+        ) : view === 'lab' ? (
           <DevnetLab onOpenWalkthrough={() => setView('walkthrough')} />
+        ) : (
+          <WalkthroughPlayer onExit={() => setView('lab')} />
         )}
       </main>
     </div>
