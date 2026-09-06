@@ -56,6 +56,10 @@ export default function LendingAcademyPlayer({
   const playerRef = useRef<HTMLDivElement>(null)
   const fitScale = useViewportFit(viewportRef)
   const [cam, setCam] = useState({ x: 0, y: 0, scale: 0.92 })
+  const [explore, setExplore] = useState({ x: 0, y: 0, scale: 1 })
+  const exploreRef = useRef(explore)
+  exploreRef.current = explore
+  const [dragging, setDragging] = useState(false)
   const [cursor, setCursor] = useState({ x: 800, y: 450, visible: false })
   const [chaptersOpen, setChaptersOpen] = useState(false)
   const [moreOpen, setMoreOpen] = useState(false)
@@ -110,6 +114,25 @@ export default function LendingAcademyPlayer({
       : world.querySelector('[data-lab="workbench"]')
     setCam(fitSceneToCamera(world, target, reducedMotion))
   }, [scene.highlight, scene.diagram, scene.id, snap.currentSceneId, reducedMotion, labState.vaultId, labState.error])
+
+  useEffect(() => {
+    setExplore({ x: 0, y: 0, scale: 1 })
+  }, [scene.id])
+
+  useEffect(() => {
+    const node = viewportRef.current
+    if (!node) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      const factor = e.deltaY > 0 ? 0.92 : 1.08
+      setExplore((prev) => ({
+        ...prev,
+        scale: Math.min(2.4, Math.max(0.55, prev.scale * factor))
+      }))
+    }
+    node.addEventListener('wheel', onWheel, { passive: false })
+    return () => node.removeEventListener('wheel', onWheel)
+  }, [])
 
   useLayoutEffect(() => {
     const world = worldRef.current
@@ -259,10 +282,57 @@ export default function LendingAcademyPlayer({
             return
           }
           bumpChrome()
-          player.toggle()
         }}
       >
-        <div ref={viewportRef} className="academy-viewport">
+        <div
+          ref={viewportRef}
+          className={'academy-viewport' + (dragging ? ' is-dragging' : '')}
+          onPointerDown={(e) => {
+            const t = e.target as HTMLElement
+            if (
+              t.closest(
+                'button, a, input, select, label, .academy-chrome, .academy-chapters-flyout, .academy-error, .academy-hold, .academy-resume'
+              )
+            ) {
+              return
+            }
+            e.preventDefault()
+            const startX = e.clientX
+            const startY = e.clientY
+            const origin = exploreRef.current
+            let moved = false
+            setDragging(true)
+            const onMove = (ev: PointerEvent) => {
+              const dx = ev.clientX - startX
+              const dy = ev.clientY - startY
+              if (!moved && Math.hypot(dx, dy) < 5) return
+              moved = true
+              setExplore({
+                ...origin,
+                x: origin.x + dx / Math.max(fitScale, 0.01),
+                y: origin.y + dy / Math.max(fitScale, 0.01)
+              })
+            }
+            const onUp = (ev: PointerEvent) => {
+              window.removeEventListener('pointermove', onMove)
+              window.removeEventListener('pointerup', onUp)
+              setDragging(false)
+              if (!moved) {
+                const node = ev.target as HTMLElement
+                if (
+                  !node.closest(
+                    'button, a, input, select, label, .academy-chrome, .academy-chapters-flyout, .academy-error, .academy-hold, .academy-resume'
+                  )
+                ) {
+                  bumpChrome()
+                  player.toggle()
+                }
+              }
+            }
+            window.addEventListener('pointermove', onMove)
+            window.addEventListener('pointerup', onUp)
+          }}
+        >
           <div
             className="academy-design"
             style={{
@@ -274,8 +344,8 @@ export default function LendingAcademyPlayer({
             <div
               className="academy-cam"
               style={{
-                transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.scale})`,
-                transition: reducedMotion ? 'none' : 'transform 0.85s cubic-bezier(0.22, 1, 0.36, 1)'
+                transform: `translate(${cam.x + explore.x}px, ${cam.y + explore.y}px) scale(${cam.scale * explore.scale})`,
+                transition: reducedMotion || dragging ? 'none' : 'transform 0.85s cubic-bezier(0.22, 1, 0.36, 1)'
               }}
             >
               <div
@@ -302,6 +372,9 @@ export default function LendingAcademyPlayer({
           </div>
           <Cursor x={cursor.x} y={cursor.y} visible={cursor.visible} />
         </div>
+        {!record && (
+          <div className="academy-explore-hint">Drag to move · Scroll to zoom</div>
+        )}
 
         {showError && (
           <div className="academy-error" role="alert">

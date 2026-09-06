@@ -182,6 +182,9 @@ export function LendingPipelineCanvas({
             </div>
           </div>
           <div className="flex-1 min-h-2" />
+          <div className="pointer-events-none self-start rounded-full border border-slate-700/70 bg-slate-950/70 px-2.5 py-1 text-[10px] uppercase tracking-[0.12em] text-slate-400">
+            Drag to orbit · Scroll to zoom · Right-drag to pan
+          </div>
           {fh === 0 || fh >= 260 ? (
             <div className="flex items-end justify-between gap-2 min-w-0 w-full">
               <HudChip

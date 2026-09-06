@@ -37,27 +37,41 @@ export function LabWorkbench({
 
   return (
     <div className={`space-y-5 min-w-0 ${compact ? 'lab-compact' : ''}`} data-lab="workbench">
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-bold tracking-tight">Live DevNet Lab</h1>
-            <span
-              data-lab="devnet-badge"
-              className={
-                'inline-flex items-center rounded-full border border-sky-400/40 bg-sky-500/10 ' +
-                'px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300'
-              }
-            >
-              XRPL DEVNET
-            </span>
-          </div>
-          <p className="text-slate-400 text-sm mt-1 max-w-3xl">
-            Real XLS-65 / XLS-66 transactions on the XRP Ledger DevNet. Test assets only — nothing
-            here is real money. The vault owner wallet creates the vault and signs loan origination.
-            That is infrastructure, not ownership of depositor capital.
-          </p>
+      {compact ? (
+        <div className="flex items-center justify-end pt-1">
+          <span
+            data-lab="devnet-badge"
+            className={
+              'inline-flex items-center rounded-full border border-sky-400/40 bg-sky-500/10 ' +
+              'px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300'
+            }
+          >
+            XRPL DEVNET
+          </span>
         </div>
-      </header>
+      ) : (
+        <header className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight">Live DevNet Lab</h1>
+              <span
+                data-lab="devnet-badge"
+                className={
+                  'inline-flex items-center rounded-full border border-sky-400/40 bg-sky-500/10 ' +
+                  'px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-300'
+                }
+              >
+                XRPL DEVNET
+              </span>
+            </div>
+            <p className="text-slate-400 text-sm mt-1 max-w-3xl">
+              Real XLS-65 / XLS-66 transactions on the XRP Ledger DevNet. Test assets only — nothing
+              here is real money. The vault owner wallet creates the vault and signs loan origination.
+              That is infrastructure, not ownership of depositor capital.
+            </p>
+          </div>
+        </header>
+      )}
 
       {state.txPhase && (
         <ol
