@@ -164,6 +164,11 @@ export default function WalkthroughPlayer({
   }, [record, ready, timeline, seekMs])
 
   useEffect(() => {
+    if (record || !ready || seekMs > 0) return
+    void audioRef.current?.play().catch(() => undefined)
+  }, [record, ready, seekMs])
+
+  useEffect(() => {
     const stage = stageRef.current
     if (!stage) return
     const target = scene.cursor
@@ -195,12 +200,17 @@ export default function WalkthroughPlayer({
       data-walkthrough-complete={complete ? 'true' : 'false'}
       data-walkthrough-ready={ready ? 'true' : 'false'}
     >
-      <audio ref={audioRef} src="/walkthrough/narration.mp3" preload="auto" />
+      <audio
+        ref={audioRef}
+        src="/walkthrough/narration.mp3"
+        preload="auto"
+        playsInline
+      />
 
       {!record && (
         <div className="walkthrough-controls">
           <button type="button" onClick={toggle} className="px-3 py-1.5 rounded-lg bg-indigo-600 text-sm">
-            {playing ? 'Pause' : ready ? 'Play walkthrough' : 'Loading audio…'}
+            {playing ? 'Pause narration' : ready ? 'Play walkthrough with voice' : 'Loading narration…'}
           </button>
           {onExit && (
             <button
@@ -211,6 +221,9 @@ export default function WalkthroughPlayer({
               Back to Lab
             </button>
           )}
+          <span className="text-xs text-slate-400 self-center">
+            {playing ? 'Voice narration is on' : 'This walkthrough has a spoken voiceover — press play to hear it.'}
+          </span>
         </div>
       )}
 
