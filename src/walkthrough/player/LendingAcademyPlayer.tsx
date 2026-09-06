@@ -145,7 +145,7 @@ export default function LendingAcademyPlayer({
     setShowChrome(true)
     if (hideTimer.current) window.clearTimeout(hideTimer.current)
     if (snap.playing && !snap.interactiveHold) {
-      hideTimer.current = window.setTimeout(() => setShowChrome(false), 2400)
+      hideTimer.current = window.setTimeout(() => setShowChrome(false), 3200)
     }
   }
 
@@ -249,6 +249,18 @@ export default function LendingAcademyPlayer({
         onMouseMove={bumpChrome}
         onTouchStart={bumpChrome}
         onFocus={bumpChrome}
+        onClick={(e) => {
+          const t = e.target as HTMLElement
+          if (
+            t.closest(
+              'button, a, input, select, label, .academy-chrome, .academy-chapters-flyout, .academy-error, .academy-hold, .academy-resume'
+            )
+          ) {
+            return
+          }
+          bumpChrome()
+          player.toggle()
+        }}
       >
         <div ref={viewportRef} className="academy-viewport">
           <div
@@ -266,7 +278,11 @@ export default function LendingAcademyPlayer({
                 transition: reducedMotion ? 'none' : 'transform 0.85s cubic-bezier(0.22, 1, 0.36, 1)'
               }}
             >
-              <div ref={worldRef} className="academy-world">
+              <div
+                ref={worldRef}
+                className="academy-world"
+                style={{ pointerEvents: snap.mode === 'interactive' ? 'auto' : 'none' }}
+              >
                 <LabWorkbench state={labState} handlers={handlers} compact />
               </div>
             </div>
