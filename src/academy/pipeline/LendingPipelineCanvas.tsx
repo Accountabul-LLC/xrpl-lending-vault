@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { takeAnimationCallback, useSimulation } from '../simulation/SimulationContext'
 import { FallbackPipeline } from './FallbackPipeline'
 import { PipelineErrorBoundary } from './PipelineErrorBoundary'
+import { LESSON_STEP_UI } from './stepCopy'
 
 const SceneLoader = lazy(() => import('./SceneMount'))
 
@@ -84,7 +85,6 @@ export function LendingPipelineCanvas({
   const { vault } = sim.state
   const showFallback = !webglOk
   const { h: fh } = frameSize
-  const showProtocolChip = fh === 0 || fh >= 280
   const handleWebglFailure = (error: Error) => {
     setWebglError(error.message)
     setWebglOk(false)
@@ -158,48 +158,84 @@ export function LendingPipelineCanvas({
           data-viz-hud
           className="absolute inset-0 z-[var(--z-banner)] pointer-events-none flex flex-col min-w-0 p-2 sm:p-3"
         >
-          <div className="flex flex-col items-center gap-1.5 min-w-0 w-full">
-            {sim.state.statusBanner ? (
-              <div className="max-w-full truncate rounded-full border border-indigo-400/40 bg-indigo-950/80 px-3 py-1 text-xs font-semibold tracking-wide text-indigo-100">
-                {sim.state.statusBanner}
-              </div>
-            ) : null}
-            {showProtocolChip ? <HudChip tone="protocol" title="Protocol / Facilitator" /> : null}
-            <div className="w-full max-w-[min(16rem,100%)] rounded-lg border border-sky-500/40 bg-slate-950/85 px-3 py-2 text-center backdrop-blur-sm shadow-lg">
-              <div className="text-xs font-semibold text-sky-200">JRPU Lending Vault</div>
-              <div className="mt-1 grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono text-slate-300">
-                <span className="text-left">Total</span>
-                <span className="text-right">${Math.round(vault.totalCapital).toLocaleString()}</span>
-                <span className="text-left">Available</span>
+          <div className="flex items-start justify-between gap-2 min-w-0 w-full">
+            <div className="min-w-0 flex flex-col gap-1.5">
+              {sim.state.statusBanner ? (
+                <div className="max-w-full truncate rounded-full border border-indigo-400/40 bg-indigo-950/80 px-3 py-1 text-xs font-semibold tracking-wide text-indigo-100">
+                  {sim.state.statusBanner}
+                </div>
+              ) : null}
+              <StepOverlay lesson={lesson} />
+            </div>
+            <div className="shrink-0 rounded-lg border border-sky-500/40 bg-slate-950/85 px-2.5 py-1.5 text-[10px] font-mono text-slate-300 backdrop-blur-sm shadow-lg">
+              <div className="text-[11px] font-semibold font-sans text-sky-200">Lending Vault</div>
+              <div className="mt-0.5 grid grid-cols-[auto_auto] gap-x-2">
+                <span>Asset</span>
+                <span className="text-right">XRP</span>
+                <span>Capacity</span>
+                <span className="text-right">${Math.round(vault.maxSize).toLocaleString()}</span>
+                <span>Available</span>
                 <span className="text-right text-emerald-300">
                   ${Math.round(vault.availableLiquidity).toLocaleString()}
-                </span>
-                <span className="text-left">Lent</span>
-                <span className="text-right text-amber-300">
-                  ${Math.round(vault.outstandingLoans).toLocaleString()}
-                </span>
-                <span className="text-left">Interest</span>
-                <span className="text-right text-indigo-300">
-                  ${Math.round(vault.interestEarned).toLocaleString()}
                 </span>
               </div>
             </div>
           </div>
           <div className="flex-1 min-h-2" />
-          <div className="flex items-end justify-between gap-2 min-w-0 w-full">
-            <HudChip
-              tone="depositor"
-              title="Depositor"
-              detail={`$${sim.primaryDepositor.deposited.toLocaleString()} in vault`}
-            />
-            <HudChip
-              tone="borrower"
-              title="Borrower"
-              detail={`$${sim.primaryBorrower.remainingBalance.toLocaleString()} outstanding`}
-            />
-          </div>
+          {fh === 0 || fh >= 260 ? (
+            <div className="flex items-end justify-between gap-2 min-w-0 w-full">
+              <HudChip
+                tone="depositor"
+                title="Depositor"
+                detail={`$${sim.primaryDepositor.deposited.toLocaleString()} in vault`}
+              />
+              <HudChip
+                tone="borrower"
+                title="Borrower"
+                detail={`$${sim.primaryBorrower.remainingBalance.toLocaleString()} outstanding`}
+              />
+            </div>
+          ) : null}
         </div>
       )}
+    </div>
+  )
+}
+
+function StepOverlay({ lesson }: { lesson: number }) {
+  const step = LESSON_STEP_UI[lesson] ?? LESSON_STEP_UI[0]
+  return (
+    <div className="min-w-0 max-w-[min(22rem,calc(100%-7rem))] rounded-lg border border-slate-700/80 bg-slate-950/88 px-2.5 py-2 text-slate-200 shadow-lg backdrop-blur-sm">
+      <div className="flex items-center justify-between gap-2">
+        <div className="text-[10px] font-semibold tracking-[0.14em] text-indigo-300">
+          STEP {step.n} OF 8
+        </div>
+        <ol className="flex items-center gap-0.5" aria-label="Lesson progress">
+          {LESSON_STEP_UI.map((s) => {
+            const done = s.n < step.n
+            const current = s.n === step.n
+            return (
+              <li
+                key={s.n}
+                title={`Step ${s.n}: ${s.title}`}
+                className={
+                  'h-1.5 w-1.5 rounded-full ' +
+                  (current ? 'bg-indigo-300 scale-125' : done ? 'bg-emerald-400' : 'bg-slate-600')
+                }
+              />
+            )
+          })}
+        </ol>
+      </div>
+      <div className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-100">{step.title}</div>
+      <dl className="mt-1.5 grid grid-cols-[2.4rem_minmax(0,1fr)] gap-x-1 gap-y-0.5 text-[10px] leading-snug">
+        <dt className="text-slate-500">WHO</dt>
+        <dd className="min-w-0 text-slate-200">{step.who}</dd>
+        <dt className="text-slate-500">WHAT</dt>
+        <dd className="min-w-0 text-slate-200">{step.what}</dd>
+        <dt className="text-slate-500">WHY</dt>
+        <dd className="min-w-0 text-slate-400">{step.why}</dd>
+      </dl>
     </div>
   )
 }
