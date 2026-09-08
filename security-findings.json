@@ -1,0 +1,147 @@
+{
+  "assessment": {
+    "environment": "security-sandbox",
+    "application_type": "Educational XRPL lending academy + in-browser Devnet wallet lab",
+    "risk_tier": 4,
+    "status": "complete",
+    "mode": "red-team",
+    "red_persona": "Wallet + blockchain + frontend + business-logic application security engineer",
+    "blue_persona": "",
+    "commit_tested": "e22714d",
+    "date": "2026-09-08"
+  },
+  "findings": [
+    {
+      "id": "RT-001",
+      "severity": "high",
+      "title": "Family seeds stored in plaintext localStorage",
+      "asset_ids": ["ASSET-001", "ASSET-002"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-001",
+      "retest_id": null
+    },
+    {
+      "id": "RT-002",
+      "severity": "high",
+      "title": "Operator, depositor, and borrower keys colocated",
+      "asset_ids": ["ASSET-001", "ASSET-004", "ASSET-006"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-002",
+      "retest_id": null
+    },
+    {
+      "id": "RT-003",
+      "severity": "high",
+      "title": "Vault and loan object IDs attacker-writable without wallet binding",
+      "asset_ids": ["ASSET-003", "ASSET-005"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-003",
+      "retest_id": null
+    },
+    {
+      "id": "RT-004",
+      "severity": "high",
+      "title": "LoanSet dual-signature applied in one in-page function",
+      "asset_ids": ["ASSET-006", "ASSET-002"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-004",
+      "retest_id": null
+    },
+    {
+      "id": "RT-005",
+      "severity": "medium",
+      "title": "Missing CSP and frame-ancestors; SPA is clickjackable",
+      "asset_ids": ["ASSET-002", "ASSET-004"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-005",
+      "retest_id": null
+    },
+    {
+      "id": "RT-006",
+      "severity": "medium",
+      "title": "Vite host:true binds signing lab on the LAN",
+      "asset_ids": ["ASSET-001"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-006",
+      "retest_id": null
+    },
+    {
+      "id": "RT-007",
+      "severity": "medium",
+      "title": "Unvalidated amounts and rates enter the signing path",
+      "asset_ids": ["ASSET-002"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-007",
+      "retest_id": null
+    },
+    {
+      "id": "RT-008",
+      "severity": "low",
+      "title": "Irreversible lab actions have no confirmation",
+      "asset_ids": ["ASSET-002", "ASSET-001"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-008",
+      "retest_id": null
+    },
+    {
+      "id": "RT-009",
+      "severity": "medium",
+      "title": "XRPL signing stack eagerly bundled on Academy pages",
+      "asset_ids": ["ASSET-002", "ASSET-004"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-009",
+      "retest_id": null
+    },
+    {
+      "id": "RT-010",
+      "severity": "medium",
+      "title": "Vite/esbuild/elliptic development-toolchain CVEs",
+      "asset_ids": ["ASSET-001"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-010",
+      "retest_id": null
+    },
+    {
+      "id": "RT-011",
+      "severity": "low",
+      "title": "Unthrottled Devnet faucet funding",
+      "asset_ids": ["ASSET-001"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-011",
+      "retest_id": null
+    },
+    {
+      "id": "RT-012",
+      "severity": "medium",
+      "title": "Wallet.fromSeed accepts arbitrary network family seeds",
+      "asset_ids": ["ASSET-001", "ASSET-002"],
+      "red_team_status": "confirmed",
+      "blue_team_status": "pending",
+      "retest_status": "not_tested",
+      "blue_id": "BT-012",
+      "retest_id": null
+    }
+  ]
+}
