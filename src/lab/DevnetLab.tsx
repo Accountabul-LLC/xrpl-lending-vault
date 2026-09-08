@@ -24,51 +24,14 @@ import {
   type LoanBrokerInfo
 } from '../lib/xrpl'
 import { Btn, Card, Stat } from '../ui'
+import { clearLabSession, loadLabSession, persistLabSession } from './session'
 
 type Role = 'owner' | 'depositor' | 'borrower'
 
-const STORAGE_KEY = 'jrpu-devnet-session'
 const ROLES: Role[] = ['owner', 'depositor', 'borrower']
-
-type Session = {
-  seeds: Partial<Record<Role, string>>
-  vaultId: string
-  loanBrokerId: string
-  loanId: string
-}
 
 function emptyWallets(): Record<Role, Wallet | null> {
   return { owner: null, depositor: null, borrower: null }
-}
-
-function loadSession(): Session {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { seeds: {}, vaultId: '', loanBrokerId: '', loanId: '' }
-    const parsed = JSON.parse(raw)
-    return {
-      seeds: parsed.seeds ?? {},
-      vaultId: parsed.vaultId ?? '',
-      loanBrokerId: parsed.loanBrokerId ?? '',
-      loanId: parsed.loanId ?? ''
-    }
-  } catch {
-    return { seeds: {}, vaultId: '', loanBrokerId: '', loanId: '' }
-  }
-}
-
-function walletsFromSeeds(seeds: Partial<Record<Role, string>>): Record<Role, Wallet | null> {
-  const next = emptyWallets()
-  for (const role of ROLES) {
-    const seed = seeds[role]
-    if (!seed) continue
-    try {
-      next[role] = Wallet.fromSeed(seed)
-    } catch {
-      next[role] = null
-    }
-  }
-  return next
 }
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -83,10 +46,8 @@ function short(addr?: string) {
 }
 
 export default function DevnetLab() {
-  const [session] = useState(loadSession)
-  const [wallets, setWallets] = useState<Record<Role, Wallet | null>>(() =>
-    walletsFromSeeds(session.seeds)
-  )
+  const [{ session, purgedSecrets }] = useState(() => loadLabSession(window.localStorage))
+  const [wallets, setWallets] = useState<Record<Role, Wallet | null>>(emptyWallets)
   const [busy, setBusy] = useState<string | null>(null)
   const [log, setLog] = useState<string[]>([])
   const [vaultId, setVaultId] = useState(session.vaultId)
@@ -112,13 +73,14 @@ export default function DevnetLab() {
   }
 
   useEffect(() => {
-    const seeds: Partial<Record<Role, string>> = {}
-    for (const role of ROLES) {
-      const seed = wallets[role]?.seed
-      if (seed) seeds[role] = seed
+    if (purgedSecrets) {
+      pushLog('Discarded stored signing keys. Keys are not saved in this browser.')
     }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ seeds, vaultId, loanBrokerId, loanId }))
-  }, [wallets, vaultId, loanBrokerId, loanId])
+  }, [purgedSecrets])
+
+  useEffect(() => {
+    persistLabSession(window.localStorage, { vaultId, loanBrokerId, loanId })
+  }, [vaultId, loanBrokerId, loanId])
 
   useEffect(() => {
     let cancelled = false
@@ -165,7 +127,7 @@ export default function DevnetLab() {
   }, [session])
 
   function clearSession() {
-    localStorage.removeItem(STORAGE_KEY)
+    clearLabSession(window.localStorage)
     setWallets(emptyWallets())
     setVaultId('')
     setVault(null)
@@ -340,14 +302,16 @@ export default function DevnetLab() {
         <p className="text-slate-400 text-sm mt-1">
           Real XLS-65 / XLS-66 transactions on XRPL Devnet. Test assets only. The protocol
           operator wallet creates the vault and signs loan origination — that is infrastructure,
-          not ownership of depositor capital.
+          not ownership of depositor capital. Signing keys stay in this tab's memory and are never
+          written to localStorage.
         </p>
       </header>
 
       <Card title="Wallets">
         <p className="text-xs text-slate-500">
-          Three parties: protocol operator, depositor, borrower. Seeds stay in this browser only.
-          Never paste a mainnet seed.
+          Three parties: protocol operator, depositor, borrower. Faucet keys live in this tab only —
+          a refresh requires re-funding. Ledger object IDs are saved so you can still inspect the
+          vault. Never paste a mainnet seed.
         </p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {ROLES.map((role) => (

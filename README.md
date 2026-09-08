@@ -14,7 +14,7 @@ npm run dev
 Site: `http://localhost:5173` (Academy first, then Live Devnet lab)  
 Ledger: `wss://s.devnet.rippletest.net:51233`
 
-Devnet faucet wallets and object IDs persist in `localStorage` so a refresh does not wipe the session. **Clear session** before switching machines. Never paste a mainnet seed.
+Ledger object IDs (vault / loan book / loan) persist in `localStorage` so you can still inspect them after a refresh. **Signing keys are not saved** — they stay in tab memory only; refresh requires re-funding faucet wallets. **Clear session** before switching machines. Never paste a mainnet seed.
 
 ## Verified live on Devnet
 
