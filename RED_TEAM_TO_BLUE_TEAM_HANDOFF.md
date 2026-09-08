@@ -20,7 +20,7 @@ Full evidence: `RED_TEAM_REPORT.md`. Profile: `APPLICATION_SECURITY_PROFILE.md`.
 
 Source Finding: RT-001  
 Severity: HIGH  
-Status: OPEN  
+Status: READY FOR RETEST  
 
 Issue:
 Classic family seeds for lab wallets are persisted as plaintext JSON in `localStorage['jrpu-devnet-session']`.

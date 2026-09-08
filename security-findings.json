@@ -3,10 +3,10 @@
     "environment": "security-sandbox",
     "application_type": "Educational XRPL lending academy + in-browser Devnet wallet lab",
     "risk_tier": 4,
-    "status": "complete",
-    "mode": "red-team",
+    "status": "remediation-in-progress",
+    "mode": "blue-team",
     "red_persona": "Wallet + blockchain + frontend + business-logic application security engineer",
-    "blue_persona": "",
+    "blue_persona": "Wallet Security Engineer",
     "commit_tested": "e22714d",
     "date": "2026-09-08"
   },
@@ -17,10 +17,10 @@
       "title": "Family seeds stored in plaintext localStorage",
       "asset_ids": ["ASSET-001", "ASSET-002"],
       "red_team_status": "confirmed",
-      "blue_team_status": "pending",
+      "blue_team_status": "ready_for_retest",
       "retest_status": "not_tested",
       "blue_id": "BT-001",
-      "retest_id": null
+      "retest_id": "RETEST-001"
     },
     {
       "id": "RT-002",
