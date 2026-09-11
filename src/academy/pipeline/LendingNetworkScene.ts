@@ -215,6 +215,9 @@ export class LendingNetworkScene {
     group.add(mesh)
     const sprite = createNameSprite(label, tint)
     if (labelY != null) sprite.position.y = labelY
+    if (id === 'administrator') sprite.position.set(0.7, 2.45, 0)
+    if (id === 'protocol') sprite.position.set(0, 2.75, 0)
+    if (id === 'vault') sprite.position.y = 2.55
     group.add(sprite)
     if (id === 'depositor') mesh.rotation.y = Math.PI / 2
     if (id === 'borrower') mesh.rotation.y = -Math.PI / 2
