@@ -52,15 +52,15 @@ Root cause: Extra hint line and default Btn padding; label clamp only reserved 5
 Fix: Drop the hint; compact buttons; clamp labels 72px from the bottom.
 Status: Resolved
 
-UI-005
-Title: Receives/Produces values sat on the far edge of the role card
-Severity: Low
+UI-006
+Title: Mobile HUD concatenated “Lending system” with “Capital”
+Severity: Medium
 Page: Academy canvas
-Component: EntityPanel Row
-Viewport: all
+Component: ProcessHud
+Viewport: 375×812
 Zoom: 100%
-Observed: Long strings right-aligned away from their labels.
-Expected: Role facts read as a small definition list.
-Root cause: `justify-between` row layout.
-Fix: Stacked label / value blocks.
+Observed: Header read “LENDING SYSTEMtal $100,000”.
+Expected: Title on its own row; capital stats on the next.
+Root cause: `flex-1` title shared a wrap row with the stats cluster.
+Fix: Title `w-full` on small screens; stats `w-full sm:w-auto`.
 Status: Resolved

@@ -22,13 +22,13 @@ export function ProcessHud() {
     >
       <div className="mx-auto w-full max-w-5xl rounded-xl border border-sky-500/35 bg-slate-950/92 px-3 py-2 shadow-lg backdrop-blur-sm pointer-events-auto min-w-0">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 min-w-0">
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 w-full sm:flex-1 sm:w-auto">
             <div className="text-[10px] uppercase tracking-wide text-sky-300">Lending system</div>
             <div className="text-xs font-semibold text-slate-100 truncate">
               {sim.state.statusBanner ?? `Step ${step} · ${meta?.title ?? 'Configure'}`}
             </div>
           </div>
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-slate-300 shrink-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] font-mono text-slate-300 w-full sm:w-auto shrink-0">
             <span>
               <span className="text-slate-500">Capital </span>
               <span className="text-slate-100">{formatUsd(vault.totalCapital)}</span>
