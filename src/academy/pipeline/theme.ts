@@ -33,14 +33,14 @@ export type CameraPreset = {
 }
 
 export const LESSON_CAMERAS: Record<number, CameraPreset> = {
-  0: { position: [0.2, 5.8, 13.2], lookAt: [0, 1.1, 0] },
-  1: { position: [0.6, 4.8, 11.4], lookAt: [0, 1.15, 0] },
-  2: { position: [-2.6, 4.6, 11.2], lookAt: [0, 1.1, 0] },
-  3: { position: [-1.8, 4.8, 11.6], lookAt: [0, 1.1, 0] },
-  4: { position: [-1.4, 4.4, 10.6], lookAt: [0, 1.15, 0] },
-  5: { position: [0.2, 5.9, 13.4], lookAt: [0, 1.1, 0] },
-  6: { position: [0.4, 5.2, 12.2], lookAt: [0, 1.1, 0] },
-  7: { position: [0.25, 6.0, 13.6], lookAt: [0, 1.1, 0] }
+  0: { position: [0.25, 13.4, 11.2], lookAt: [0, 0.35, 0] },
+  1: { position: [0.8, 12.4, 10.6], lookAt: [0, 0.4, 0] },
+  2: { position: [-2.4, 12.6, 10.8], lookAt: [0, 0.35, 0] },
+  3: { position: [-1.6, 12.8, 11.0], lookAt: [0, 0.35, 0] },
+  4: { position: [-1.2, 12.2, 10.4], lookAt: [0, 0.4, 0] },
+  5: { position: [0.25, 13.6, 11.4], lookAt: [0, 0.35, 0] },
+  6: { position: [0.4, 13.0, 11.0], lookAt: [0, 0.35, 0] },
+  7: { position: [0.25, 13.8, 11.6], lookAt: [0, 0.35, 0] }
 }
 
 export const FLOW_COLORS: Record<FlowKind, number> = {

@@ -35,7 +35,7 @@ export function createGround(): THREE.Group {
   g.add(outer)
 
   const deskRing = new THREE.Mesh(
-    new THREE.RingGeometry(4.35, 4.55, 64),
+    new THREE.RingGeometry(5.35, 5.55, 64),
     new THREE.MeshBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.45, side: THREE.DoubleSide })
   )
   deskRing.rotation.x = -Math.PI / 2

@@ -167,17 +167,17 @@ export const PARTICIPANT_BY_ID: Record<EntityId, ParticipantMeta> = Object.fromE
  */
 export const PROCESS_POSITIONS: Record<EntityId, [number, number, number]> = {
   vault: [0, 0, 0],
-  underwriter: [0, 0, -3.55],
-  protocol: [0, 0, -5.15],
-  broker: [-3.7, 0, -1.15],
-  originator: [3.7, 0, -1.15],
-  depositor: [-4.15, 0, -2.85],
-  borrower: [-3.65, 0, 1.85],
-  guarantor: [3.65, 0, 1.85],
-  custodian: [0, 0, 2.85],
-  servicer: [-1.85, 0, 4.05],
-  administrator: [1.85, 0, 4.05],
-  agreement: [-2.15, 0, 2.55]
+  underwriter: [0, 0, -4.65],
+  protocol: [0, 0, -6.45],
+  broker: [-4.85, 0, -1.55],
+  originator: [4.85, 0, -1.55],
+  depositor: [-5.25, 0, -3.45],
+  borrower: [-4.75, 0, 2.25],
+  guarantor: [4.75, 0, 2.25],
+  custodian: [2.35, 0, 4.25],
+  servicer: [-4.05, 0, 4.55],
+  administrator: [4.35, 0, 4.45],
+  agreement: [-2.55, 0, 3.35]
 }
 
 export const BASIC_ENTITY_IDS: EntityId[] = PARTICIPANTS.filter((p) => p.basic).map((p) => p.id)

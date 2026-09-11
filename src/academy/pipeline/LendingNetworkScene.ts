@@ -23,7 +23,7 @@ import {
   type CameraPreset
 } from './theme'
 
-const VAULT_SCALE = 1.48
+const VAULT_SCALE = 1.62
 
 type Actor = {
   group: THREE.Group
@@ -128,8 +128,8 @@ export class LendingNetworkScene {
     this.controls.enablePan = true
     this.controls.enableZoom = true
     this.controls.enableRotate = true
-    this.controls.minDistance = 4.2
-    this.controls.maxDistance = 28
+    this.controls.minDistance = 8
+    this.controls.maxDistance = 32
     this.controls.minPolarAngle = 0.18
     this.controls.maxPolarAngle = Math.PI / 2 - 0.08
     this.controls.target.set(...this.targetCam.lookAt)
@@ -509,18 +509,18 @@ export class LendingNetworkScene {
     const w = this.root.clientWidth
     if (w > 0 && w < 700) {
       const dir = pos.clone().sub(look)
-      if (dir.lengthSq() < 0.01) dir.set(0.2, 5.6, 13)
-      dir.multiplyScalar(1.22)
+      if (dir.lengthSq() < 0.01) dir.set(0.2, 13.4, 11)
+      dir.multiplyScalar(1.12)
       pos.copy(look).add(dir)
-      pos.y = Math.max(pos.y, 5.4)
-      if (Math.abs(pos.z) < 13) pos.z = Math.sign(pos.z || 1) * 13
+      pos.y = Math.max(pos.y, 13.2)
+      if (Math.abs(pos.z) < 11) pos.z = Math.sign(pos.z || 1) * 11
     }
     return pos
   }
 
   projectEntity(id: EntityId): { x: number; y: number } | null {
     const pos = new THREE.Vector3(...ENTITY_POSITIONS[id])
-    pos.y += id === 'vault' || id === 'protocol' ? 2.65 : 2.4
+    pos.y += id === 'vault' || id === 'protocol' ? 3.05 : 2.55
     pos.project(this.camera)
     const { clientWidth: w, clientHeight: h } = this.root
     if (pos.z > 1) return null
