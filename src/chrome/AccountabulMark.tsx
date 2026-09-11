@@ -1,16 +1,11 @@
 export function AccountabulMark({ className }: { className?: string }) {
   return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 1200 1200"
+    <img
+      src={`${import.meta.env.BASE_URL}accountabul-icon.png`}
+      alt=""
+      width={32}
+      height={32}
       className={className}
-      aria-hidden="true"
-    >
-      <rect width="1200" height="1200" fill="#212435" />
-      <path fill="#A4FFE1" d="M393 448A206 206 0 0 0 805 448Z" />
-      <path fill="#A4FEED" d="M750 393A206 206 0 0 1 750 805Z" />
-      <path fill="#A4FFE1" d="M393 750A206 206 0 0 1 805 750Z" />
-      <path fill="#A4FED4" d="M448 393A206 206 0 0 0 448 805Z" />
-    </svg>
+    />
   )
 }
