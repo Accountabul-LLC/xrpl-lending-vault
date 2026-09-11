@@ -1,11 +1,18 @@
 import { useState } from 'react'
 import Academy from './academy/Academy'
+import { GlossaryDrawer } from './chrome/GlossaryDrawer'
+import { ThemeProvider, ThemeToggle } from './chrome/Theme'
 import DevnetLab from './lab/DevnetLab'
 
 type View = 'academy' | 'lab'
 
-export default function App() {
+function navClass(active: boolean) {
+  return 'px-3 py-1.5 rounded-lg text-sm ' + (active ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-300')
+}
+
+function Shell() {
   const [view, setView] = useState<View>('academy')
+  const [glossaryOpen, setGlossaryOpen] = useState(false)
 
   return (
     <div className="min-h-screen min-w-0 flex flex-col">
@@ -17,27 +24,22 @@ export default function App() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setView('academy')}
-            className={
-              'px-3 py-1.5 rounded-lg text-sm ' +
-              (view === 'academy' ? 'bg-indigo-600' : 'bg-slate-800 text-slate-300')
-            }
-          >
+          <button type="button" onClick={() => setView('academy')} className={navClass(view === 'academy')}>
             Academy
           </button>
-          <button
-            type="button"
-            onClick={() => setView('lab')}
-            className={
-              'px-3 py-1.5 rounded-lg text-sm ' +
-              (view === 'lab' ? 'bg-indigo-600' : 'bg-slate-800 text-slate-300')
-            }
-          >
+          <button type="button" onClick={() => setView('lab')} className={navClass(view === 'lab')}>
             <span className="sm:hidden">Lab</span>
             <span className="hidden sm:inline">Live Devnet lab</span>
           </button>
+          <button
+            type="button"
+            onClick={() => setGlossaryOpen(true)}
+            aria-expanded={glossaryOpen}
+            className={navClass(glossaryOpen)}
+          >
+            Glossary
+          </button>
+          <ThemeToggle />
         </div>
       </nav>
       <main
@@ -49,6 +51,15 @@ export default function App() {
       >
         {view === 'academy' ? <Academy onOpenLab={() => setView('lab')} /> : <DevnetLab />}
       </main>
+      <GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
     </div>
+  )
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <Shell />
+    </ThemeProvider>
   )
 }
