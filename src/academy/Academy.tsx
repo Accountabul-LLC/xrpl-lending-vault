@@ -122,7 +122,7 @@ function LessonCopy({ lesson, reduceMotion }: { lesson: number; reduceMotion: bo
             The administrator configures a vault — a pool of capital with rules. Depositors own a{' '}
             <strong className="text-slate-100">position</strong> in that pool, not the vault itself.
           </p>
-          <Card title="JRPU Lending Vault #001">
+          <Card title="Accountabul Lending Vault #001">
             <ul className="text-sm space-y-2">
               <li>
                 <Term name="Maximum Vault Size" />: $250,000

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import Academy from './academy/Academy'
+import { AccountabulMark } from './chrome/AccountabulMark'
 import { GlossaryDrawer } from './chrome/GlossaryDrawer'
 import { ThemeProvider, ThemeToggle } from './chrome/Theme'
 import DevnetLab from './lab/DevnetLab'
@@ -17,10 +18,13 @@ function Shell() {
   return (
     <div className="min-h-screen min-w-0 flex flex-col">
       <nav className="sticky top-0 z-[var(--z-sticky-header)] shrink-0 border-b border-slate-800 bg-slate-950 px-4 lg:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="font-semibold text-sm lg:text-base truncate">JRPU Lending Protocol</div>
-          <div className="text-[11px] text-slate-500 hidden sm:block">
-            Basic and institutional lending academy
+        <div className="min-w-0 flex items-center gap-2.5">
+          <AccountabulMark className="h-8 w-8 shrink-0" />
+          <div className="min-w-0">
+            <div className="font-semibold text-sm lg:text-base truncate">Accountabul XRPL Academy</div>
+            <div className="text-[11px] text-slate-500 hidden sm:block">
+              Basic and institutional lending
+            </div>
           </div>
         </div>
         <div className="flex flex-wrap gap-2 shrink-0">

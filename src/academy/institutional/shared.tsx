@@ -10,7 +10,7 @@ export function TrackToggle({
 }) {
   return (
     <div className="space-y-2">
-      <div className="text-xs uppercase tracking-wide text-slate-500 px-2">JRPU Lending Academy</div>
+      <div className="text-xs uppercase tracking-wide text-slate-500 px-2">Accountabul XRPL Academy</div>
       <div className="grid grid-cols-2 gap-1 p-1 rounded-lg bg-slate-900 border border-slate-800">
         <button
           type="button"

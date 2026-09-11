@@ -200,7 +200,7 @@ export default function DevnetLab() {
     await run('create-vault', async () => {
       const { vaultId: id } = await createVault(wallets.owner!, {
         assetsMaximumXrp: assetsMaximum,
-        data: 'JRPU Lending Protocol devnet test vault'
+        data: 'Accountabul XRPL Academy devnet test vault'
       })
       setVaultId(id)
       pushLog(`VaultCreate ok — VaultID ${short(id)}`)

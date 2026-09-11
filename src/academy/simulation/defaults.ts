@@ -137,7 +137,7 @@ export function createInitialState(step = 0): SimulationState {
     advancedReveal: 0,
     distributionPolicy: 'accrue',
     statusBanner: null,
-    log: ['JRPU classroom vault — start by configuring the lending system.'],
+    log: ['Accountabul classroom vault — start by configuring the lending system.'],
     pendingAnimations: [],
     underwritingPhase: 0,
     riskMode: false,
