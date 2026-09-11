@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { LessonNav } from '../components/LessonNav'
-import { LessonPager } from '../components/LessonPager'
 import {
   complexityForReveal,
   INST_LESSONS,
@@ -13,7 +12,6 @@ import { InstLessonBody } from './Lessons'
 import { TrackToggle } from './shared'
 
 export default function Institutional({
-  onOpenLab,
   track,
   setTrack,
   lesson,
@@ -21,7 +19,6 @@ export default function Institutional({
   reduceMotion,
   setReduceMotion
 }: {
-  onOpenLab: () => void
   track: 'basic' | 'institutional'
   setTrack: (t: 'basic' | 'institutional') => void
   lesson: number
@@ -63,22 +60,13 @@ export default function Institutional({
       </aside>
 
       <div className={'space-y-4 min-w-0' + (reduceMotion ? ' motion-safe-off' : '')}>
-        <div className="min-w-0 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
-              Institutional lending
-            </p>
-            <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
-              Lesson {lesson + 1}: {INST_LESSONS[lesson]}
-            </h1>
-          </div>
-          <LessonPager
-            lesson={lesson}
-            lastIndex={INST_LESSONS.length - 1}
-            onPrev={() => setLesson((n) => n - 1)}
-            onNext={() => setLesson((n) => n + 1)}
-            onFinish={onOpenLab}
-          />
+        <div className="min-w-0">
+          <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
+            Institutional lending
+          </p>
+          <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
+            Lesson {lesson + 1}: {INST_LESSONS[lesson]}
+          </h1>
         </div>
         <InstLessonBody
           n={lesson}

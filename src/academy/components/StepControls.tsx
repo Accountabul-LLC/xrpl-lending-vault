@@ -73,12 +73,13 @@ export function StepControls({
           >
             Previous
           </Btn>
-          <Btn onClick={play} disabled={playing}>
-            Play
-          </Btn>
-          <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => setPlaying(false)}>
-            Pause
-          </Btn>
+          {playing ? (
+            <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => setPlaying(false)}>
+              Pause
+            </Btn>
+          ) : (
+            <Btn onClick={play}>Play</Btn>
+          )}
           <Btn className="bg-slate-700 hover:bg-slate-600" onClick={restart}>
             Restart
           </Btn>

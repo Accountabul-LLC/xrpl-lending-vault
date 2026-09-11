@@ -53,7 +53,7 @@ function Shell() {
             : 'flex-1 min-w-0 w-full max-w-7xl mx-auto px-4 py-4 sm:px-6 sm:py-6'
         }
       >
-        {view === 'academy' ? <Academy onOpenLab={() => setView('lab')} /> : <DevnetLab />}
+        {view === 'academy' ? <Academy /> : <DevnetLab />}
       </main>
       <GlossaryDrawer open={glossaryOpen} onClose={() => setGlossaryOpen(false)} />
     </div>

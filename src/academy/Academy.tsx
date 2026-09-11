@@ -3,7 +3,6 @@ import { Btn, Card, Stat } from '../ui'
 import { EntityPanel } from './components/EntityPanel'
 import { InfoPanel } from './components/InfoPanel'
 import { LessonNav } from './components/LessonNav'
-import { LessonPager } from './components/LessonPager'
 import { LifecycleTracker } from './components/LifecycleTracker'
 import { StepControls } from './components/StepControls'
 import { ViewLegend } from './components/ViewLegend'
@@ -344,7 +343,7 @@ function parseLesson(track: AcademyTrack): number {
   return Number.isFinite(n) && n >= 1 && n <= max ? n - 1 : 0
 }
 
-function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
+function AcademyInner() {
   const [track, setTrack] = useState<AcademyTrack>(parseTrack)
   const [lesson, setLesson] = useState(() => parseLesson(parseTrack()))
   const [instLesson, setInstLesson] = useState(() =>
@@ -379,7 +378,6 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
   if (track === 'institutional') {
     return (
       <Institutional
-        onOpenLab={onOpenLab}
         track={track}
         setTrack={changeTrack}
         lesson={instLesson}
@@ -420,23 +418,14 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
       </aside>
 
       <div className="academy-main min-w-0 flex flex-col gap-2">
-        <header className="shrink-0 min-w-0 flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
-              Lending protocol & vault
-            </p>
-            <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
-              Lesson {lesson + 1}: {LESSONS[lesson]}
-            </h1>
-            <p className="text-xs text-slate-400 mt-1 max-w-4xl">{lessonBlurb[lesson]}</p>
-          </div>
-          <LessonPager
-            lesson={lesson}
-            lastIndex={LESSONS.length - 1}
-            onPrev={() => setLesson((n) => n - 1)}
-            onNext={() => setLesson((n) => n + 1)}
-            onFinish={onOpenLab}
-          />
+        <header className="shrink-0 min-w-0">
+          <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
+            Lending protocol & vault
+          </p>
+          <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
+            Lesson {lesson + 1}: {LESSONS[lesson]}
+          </h1>
+          <p className="text-xs text-slate-400 mt-1 max-w-4xl">{lessonBlurb[lesson]}</p>
         </header>
 
         <div className="shrink-0 space-y-2">
@@ -512,10 +501,10 @@ function AdvancedRolesStrip() {
   )
 }
 
-export default function Academy({ onOpenLab }: { onOpenLab: () => void }) {
+export default function Academy() {
   return (
     <SimulationProvider>
-      <AcademyInner onOpenLab={onOpenLab} />
+      <AcademyInner />
     </SimulationProvider>
   )
 }
