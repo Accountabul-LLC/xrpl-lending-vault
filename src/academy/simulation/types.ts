@@ -110,6 +110,7 @@ export type AnimationRequest = {
   amount: number
   kind: FlowKind
   label?: string
+  packet?: 'document' | 'coin' | 'property'
   /** Set once the scene has claimed this animation (prevents remount double-play). */
   started?: boolean
 }

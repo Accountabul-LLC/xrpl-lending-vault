@@ -1,13 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Btn, Card, Stat } from '../ui'
-import { EntityPanel } from './components/EntityPanel'
 import { InfoPanel } from './components/InfoPanel'
 import { LessonNav } from './components/LessonNav'
-import { LifecycleTracker } from './components/LifecycleTracker'
-import { StepControls } from './components/StepControls'
-import { ViewLegend } from './components/ViewLegend'
 import { BASIC_GLOSSARY as GLOSSARY } from './experience/terms'
-import { ADVANCED_ROLES, formatUsd, STORY } from './experience/story'
+import { formatUsd, STORY } from './experience/story'
 import Institutional from './institutional/Institutional'
 import { INST_LESSONS } from './institutional/glossary'
 import { TrackToggle } from './institutional/shared'
@@ -389,10 +385,10 @@ function AcademyInner() {
   }
 
   const lessonBlurb: Record<number, string> = {
-    0: 'Watch the people, the vault, and the capital. Play the full process.',
+    0: 'The vault is the center. Play the process and watch capital move desk to desk.',
     1: 'The administrator sets the rules and creates the vault that will hold liquidity.',
     2: 'The depositor brings capital. It becomes vault liquidity.',
-    3: 'The borrower requests, the protocol reviews, the vault funds the loan.',
+    3: 'The borrower applies. Originator, underwriter, and the vault move the loan forward.',
     4: 'Principal, APR, term, and monthly payments are the borrower’s obligation.',
     5: 'Follow one path of money from deposit through repayment to depositor yield.',
     6: 'If repayment fails, expected cash is not received — and the vault is impaired.',
@@ -420,7 +416,7 @@ function AcademyInner() {
       <div className="academy-main min-w-0 flex flex-col gap-2">
         <header className="shrink-0 min-w-0">
           <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
-            Lending protocol & vault
+            Lending process
           </p>
           <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
             Lesson {lesson + 1}: {LESSONS[lesson]}
@@ -428,74 +424,15 @@ function AcademyInner() {
           <p className="text-xs text-slate-400 mt-1 max-w-4xl">{lessonBlurb[lesson]}</p>
         </header>
 
-        <div className="shrink-0 space-y-2">
-          <StepControls lesson={lesson} reducedMotion={reduceMotion} />
-          <ViewLegend />
-        </div>
-
-        <div className="min-h-[240px] flex-1 flex flex-col gap-2 min-w-0">
-          <LendingPipelineCanvas lesson={lesson} reduceMotionOverride={reduceMotion} />
-          <LifecycleTracker stage={sim.state.lifecycleStage} />
-        </div>
+        <LendingPipelineCanvas lesson={lesson} reduceMotionOverride={reduceMotion} />
 
         <div className="shrink-0">
           <InfoPanel />
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] gap-3 items-start min-h-0">
-          <div className="min-w-0">
-            <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
-            <AdvancedRolesStrip />
-          </div>
-          <div className="space-y-2 min-w-0">
-            <EntityPanel />
-          </div>
+        <div className="min-w-0">
+          <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
         </div>
-      </div>
-    </div>
-  )
-}
-
-function AdvancedRolesStrip() {
-  const sim = useSimulation()
-  const level = sim.state.advancedReveal
-  return (
-    <div className="mt-3 rounded-xl border border-slate-800 bg-slate-950/60 p-3 space-y-2">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <div className="text-[10px] uppercase tracking-wide text-slate-500">Advanced lending roles</div>
-          <div className="text-sm text-slate-200">Same world, more desks around the vault</div>
-        </div>
-        <button
-          type="button"
-          onClick={() => sim.setAdvancedReveal(level > 0 ? 0 : 6)}
-          className="text-[11px] px-2 py-1 rounded-md border border-slate-700 text-slate-300 hover:border-slate-500"
-        >
-          {level > 0 ? 'Hide extras' : 'Show all'}
-        </button>
-      </div>
-      <div className="flex flex-wrap gap-1.5">
-        {ADVANCED_ROLES.map((role, i) => {
-          const on = level > i
-          return (
-            <button
-              key={role.id}
-              type="button"
-              onClick={() => {
-                sim.setAdvancedReveal(on && level === i + 1 ? i : i + 1)
-                sim.selectEntity(role.id)
-              }}
-              className={
-                'rounded-full border px-2.5 py-1 text-[11px] transition ' +
-                (on
-                  ? 'border-indigo-400/50 bg-indigo-950/40 text-indigo-100'
-                  : 'border-slate-700 text-slate-400 hover:border-slate-500')
-              }
-            >
-              {role.label}
-            </button>
-          )
-        })}
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
-import type { EntityId, FlowKind, LifecycleStage, SimulationState } from '../simulation/types'
+import { PROCESS_POSITIONS, processFocus } from '../experience/lendingProcess'
 import { STORY_STEPS } from '../experience/story'
+import type { EntityId, FlowKind, LifecycleStage, SimulationState } from '../simulation/types'
 
 export const COLORS = {
   bg: 0x0b1220,
@@ -22,32 +23,8 @@ export const COLORS = {
   white: 0xe2e8f0
 } as const
 
-/**
- * Shared world layout (ground plane y=0):
- *
- *                 PROTOCOL OFFICE
- *                      │
- *               Administrator
- *                      │
- *                      ▼
- * Depositor ──────→ LENDING VAULT ──────→ Borrower
- *                       ▲                       │
- *                       └──── Repayment ────────┘
- */
-export const ENTITY_POSITIONS: Record<EntityId, [number, number, number]> = {
-  protocol: [0, 0, -3.85],
-  administrator: [1.45, 0, -2.25],
-  vault: [0, 0, 0.35],
-  depositor: [-3.35, 0, 0.55],
-  borrower: [3.35, 0, 0.55],
-  agreement: [2.05, 0, 1.45],
-  originator: [2.85, 0, -1.75],
-  underwriter: [0.25, 0, -2.45],
-  broker: [3.35, 0, 2.05],
-  guarantor: [4.45, 0, -0.95],
-  custodian: [-4.25, 0, -1.05],
-  servicer: [0, 0, 2.45]
-}
+/** Vault at the origin; desks sit on a permanent ring around it. */
+export const ENTITY_POSITIONS = PROCESS_POSITIONS
 
 export type CameraPreset = {
   position: [number, number, number]
@@ -56,14 +33,14 @@ export type CameraPreset = {
 }
 
 export const LESSON_CAMERAS: Record<number, CameraPreset> = {
-  0: { position: [0.2, 2.45, 8.2], lookAt: [0, 1.15, 0.2] },
-  1: { position: [1.5, 2.25, 6.1], lookAt: [0.35, 1.2, -1.2] },
-  2: { position: [-2.4, 2.05, 6.6], lookAt: [-1.1, 1.05, 0.25] },
-  3: { position: [2.4, 2.05, 6.6], lookAt: [1.1, 1.05, 0.25] },
-  4: { position: [2.55, 2.1, 6.2], lookAt: [1.85, 1.2, 0.7] },
-  5: { position: [0.2, 2.55, 8.4], lookAt: [0, 1.1, 0.15] },
-  6: { position: [2.05, 2.2, 7.1], lookAt: [0.75, 1.05, 0.2] },
-  7: { position: [0.25, 2.65, 8.6], lookAt: [0, 1.1, 0.1] }
+  0: { position: [0.25, 13.4, 11.2], lookAt: [0, 0.35, 0] },
+  1: { position: [0.8, 12.4, 10.6], lookAt: [0, 0.4, 0] },
+  2: { position: [-2.4, 12.6, 10.8], lookAt: [0, 0.35, 0] },
+  3: { position: [-1.6, 12.8, 11.0], lookAt: [0, 0.35, 0] },
+  4: { position: [-1.2, 12.2, 10.4], lookAt: [0, 0.4, 0] },
+  5: { position: [0.25, 13.6, 11.4], lookAt: [0, 0.35, 0] },
+  6: { position: [0.4, 13.0, 11.0], lookAt: [0, 0.35, 0] },
+  7: { position: [0.25, 13.8, 11.6], lookAt: [0, 0.35, 0] }
 }
 
 export const FLOW_COLORS: Record<FlowKind, number> = {
@@ -77,24 +54,24 @@ export const FLOW_COLORS: Record<FlowKind, number> = {
   default: COLORS.risk
 }
 
-export function lessonFocusEntities(lesson: number): EntityId[] {
+export function lessonFocusEntities(lesson: number, advanced = false): EntityId[] {
   switch (lesson) {
     case 0:
-      return ['protocol', 'administrator', 'depositor', 'borrower', 'vault']
+      return processFocus(1, advanced)
     case 1:
-      return ['administrator', 'protocol', 'vault']
+      return ['administrator', 'vault', ...(advanced ? (['protocol'] as EntityId[]) : [])]
     case 2:
       return ['depositor', 'vault']
     case 3:
-      return ['borrower', 'vault', 'administrator']
+      return ['borrower', 'originator', 'underwriter', 'vault', 'administrator']
     case 4:
       return ['borrower', 'agreement', 'vault']
     case 5:
-      return ['depositor', 'vault', 'borrower', 'administrator', 'protocol']
+      return processFocus(5, advanced)
     case 6:
-      return ['borrower', 'vault', 'depositor']
+      return ['borrower', 'servicer', 'vault', 'depositor']
     default:
-      return ['protocol', 'administrator', 'vault', 'depositor', 'borrower']
+      return ['administrator', 'vault', 'depositor', 'borrower', 'originator', 'underwriter', 'custodian', 'servicer']
   }
 }
 

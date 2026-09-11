@@ -63,5 +63,6 @@ describe('lending story snapshots', () => {
     expect(lessonStartStep(6)).toBe(9)
     expect(stepHasMotion(3)).toBe(true)
     expect(stepHasMotion(4)).toBe(false)
+    expect(stepHasMotion(6)).toBe(true)
   })
 })

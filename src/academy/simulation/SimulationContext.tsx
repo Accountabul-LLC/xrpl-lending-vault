@@ -6,6 +6,7 @@ import {
   useReducer,
   type ReactNode
 } from 'react'
+import { hopsForStep, type ProcessHop } from '../experience/lendingProcess'
 import {
   lessonStartStep,
   lessonStepRange,
@@ -110,6 +111,8 @@ function reducer(state: SimulationState, action: Action): SimulationState {
           ? 'Sandbox: configure the vault, then deposit, lend, and repay.'
           : `Lesson ${action.lesson + 1} — start at Step ${start}.`
       ]
+      next.showAdvancedRoles = state.showAdvancedRoles
+      next.advancedReveal = state.advancedReveal
       return next
     }
     case 'SELECT_ENTITY':
@@ -800,7 +803,35 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
         state: { ...before, currentStep: target, lifecycleStage: stageForStep(target) }
       })
 
+      const advanced = before.showAdvancedRoles || before.advancedReveal > 0
       const play = animate && stepHasMotion(target)
+      const hops = hopsForStep(target, advanced)
+
+      const playHops = (chain: ProcessHop[], onDone?: () => void) => {
+        const run = (i: number) => {
+          if (i >= chain.length) {
+            onDone?.()
+            return
+          }
+          const hop = chain[i]
+          if (hop.banner) dispatch({ type: 'SET_BANNER', banner: hop.banner })
+          queueAnimation({
+            from: hop.from,
+            to: hop.to,
+            amount: hop.amount,
+            kind: hop.kind,
+            label: hop.label,
+            packet: hop.packet,
+            onComplete: () => run(i + 1)
+          })
+        }
+        if (chain.length === 0) {
+          onDone?.()
+          return
+        }
+        run(0)
+      }
+
       if (target === 1) {
         dispatch({ type: 'SET_BANNER', banner: 'STEP 1 — SET THE RULES' })
         dispatch({ type: 'NOTE', msg: 'Administrator defines vault limits, asset, and lending rules.' })
@@ -814,16 +845,10 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       }
       if (target === 3) {
         if (play) {
-          queueAnimation({
-            from: 'depositor',
-            to: 'vault',
-            amount: STORY.deposit,
-            kind: 'deposit',
-            label: `$${STORY.deposit.toLocaleString()}`,
-            onComplete: () =>
-              dispatch({ type: 'APPLY_DEPOSIT', depositorId: 'd-alice', amount: STORY.deposit })
-          })
           dispatch({ type: 'SET_BANNER', banner: 'DEPOSITING…' })
+          playHops(hops, () =>
+            dispatch({ type: 'APPLY_DEPOSIT', depositorId: 'd-alice', amount: STORY.deposit })
+          )
         } else {
           dispatch({ type: 'APPLY_DEPOSIT', depositorId: 'd-alice', amount: STORY.deposit })
         }
@@ -838,34 +863,28 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       }
       if (target === 5) {
         dispatch({ type: 'REQUEST_LOAN', amount: STORY.loan })
-        if (play) {
-          queueAnimation({
-            from: 'borrower',
-            to: 'administrator',
-            amount: 1,
-            kind: 'request',
-            label: 'Loan request'
-          })
-        }
+        dispatch({ type: 'SET_BANNER', banner: 'APPLICATION…' })
+        if (play) playHops(hops)
         dispatch({ type: 'SELECT_ENTITY', entity: 'borrower' })
         return
       }
       if (target === 6) {
-        dispatch({ type: 'APPROVE_LOAN' })
-        dispatch({ type: 'SELECT_ENTITY', entity: 'administrator' })
+        dispatch({ type: 'SET_BANNER', banner: 'UNDERWRITING…' })
+        if (play) {
+          playHops(hops, () => {
+            dispatch({ type: 'APPROVE_LOAN' })
+            dispatch({ type: 'SET_BANNER', banner: 'APPROVED' })
+          })
+        } else {
+          dispatch({ type: 'APPROVE_LOAN' })
+        }
+        dispatch({ type: 'SELECT_ENTITY', entity: 'underwriter' })
         return
       }
       if (target === 7) {
         if (play) {
-          queueAnimation({
-            from: 'vault',
-            to: 'borrower',
-            amount: STORY.loan,
-            kind: 'loan',
-            label: `$${STORY.loan.toLocaleString()}`,
-            onComplete: () => dispatch({ type: 'APPLY_LOAN_FUND', loanId: 'loan-story' })
-          })
-          dispatch({ type: 'SET_BANNER', banner: 'FUNDING…' })
+          dispatch({ type: 'SET_BANNER', banner: 'COLLATERAL → FUNDING…' })
+          playHops(hops, () => dispatch({ type: 'APPLY_LOAN_FUND', loanId: 'loan-story' }))
         } else {
           dispatch({ type: 'APPLY_LOAN_FUND', loanId: 'loan-story' })
         }
@@ -879,28 +898,15 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
       }
       if (target === 9) {
         if (play) {
-          queueAnimation({
-            from: 'borrower',
-            to: 'vault',
-            amount: DEMO_PRINCIPAL_SHARE,
-            kind: 'principal',
-            label: `Principal $${DEMO_PRINCIPAL_SHARE.toFixed(2)}`
-          })
-          queueAnimation({
-            from: 'borrower',
-            to: 'vault',
-            amount: DEMO_INTEREST_SHARE,
-            kind: 'interest',
-            label: `Interest $${DEMO_INTEREST_SHARE.toFixed(2)}`,
-            onComplete: () =>
-              dispatch({
-                type: 'APPLY_PAYMENT',
-                loanId: 'loan-story',
-                principal: DEMO_PRINCIPAL_SHARE,
-                interest: DEMO_INTEREST_SHARE
-              })
-          })
           dispatch({ type: 'SET_BANNER', banner: `PAYMENT $${DEMO_PAYMENT.toFixed(2)}` })
+          playHops(hops, () =>
+            dispatch({
+              type: 'APPLY_PAYMENT',
+              loanId: 'loan-story',
+              principal: DEMO_PRINCIPAL_SHARE,
+              interest: DEMO_INTEREST_SHARE
+            })
+          )
         } else {
           dispatch({
             type: 'APPLY_PAYMENT',
@@ -909,7 +915,7 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
             interest: DEMO_INTEREST_SHARE
           })
         }
-        dispatch({ type: 'SELECT_ENTITY', entity: 'borrower' })
+        dispatch({ type: 'SELECT_ENTITY', entity: 'servicer' })
         return
       }
       if (target === 10) {
