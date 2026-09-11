@@ -62,7 +62,7 @@ export function LendingPipelineCanvas({
     <div
       ref={frameRef}
       data-viz-frame
-      className="relative w-full min-h-[220px] h-[min(42vh,380px)] sm:h-[min(48vh,460px)] lg:min-h-0 lg:flex-1 lg:h-auto rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
+      className="relative w-full min-h-[280px] h-[min(56vh,560px)] sm:h-[min(62vh,640px)] lg:min-h-[440px] lg:flex-1 lg:h-auto rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
     >
       {showFallback ? (
         <>

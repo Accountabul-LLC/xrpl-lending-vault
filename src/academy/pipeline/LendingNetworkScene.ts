@@ -2,11 +2,11 @@ import * as THREE from 'three'
 import {
   createAmountSprite,
   createCoin,
+  createContractStand,
   createDocument,
   createGround,
   createNameSprite,
   createOffice,
-  createPathStrip,
   createPerson,
   createVault,
   disposeObject3D
@@ -19,7 +19,6 @@ import {
   ENTITY_POSITIONS,
   FLOW_COLORS,
   lessonFocusEntities,
-  stageHighlight,
   vaultFillRatio,
   type CameraPreset
 } from './theme'
@@ -60,7 +59,6 @@ export class LendingNetworkScene {
   scene: THREE.Scene
   camera: THREE.PerspectiveCamera
   private actors = new Map<EntityId, Actor>()
-  private paths = new Map<string, THREE.Mesh>()
   private particles: Particle[] = []
   private timer = new THREE.Timer()
   private raf = 0
@@ -127,55 +125,61 @@ export class LendingNetworkScene {
     this.scene.add(amb, key, rim)
     this.scene.add(createGround())
 
-    this.addActor('protocol', createOffice(), 'Protocol Office', '#c7d2fe', 2.05)
+    this.addActor('protocol', createOffice(), 'Protocol Office', '#c7d2fe', 2.35)
     this.addActor(
       'administrator',
-      createPerson({ clothing: COLORS.administrator, hold: 'clipboard' }),
+      createPerson({ clothing: COLORS.administrator, hair: 0x334155, hold: 'clipboard' }),
       'Administrator',
       '#c7d2fe'
     )
     const vault = createVault()
-    this.addActor('vault', vault, 'Lending Vault', '#7dd3fc', 2.15)
+    vault.scale.setScalar(1.12)
+    this.addActor('vault', vault, 'Lending Vault', '#7dd3fc', 2.35)
     this.actors.get('vault')!.fill = vault.userData.fill as THREE.Mesh
     this.addActor(
       'depositor',
-      createPerson({ clothing: COLORS.depositor, hold: 'coins' }),
+      createPerson({ clothing: COLORS.depositor, hair: 0x1c1917, hold: 'coins' }),
       'Depositor / Lender',
       '#6ee7b7'
     )
     this.addActor(
       'borrower',
-      createPerson({ clothing: COLORS.borrower, hold: 'document' }),
+      createPerson({ clothing: COLORS.borrower, hair: 0x78350f, hold: 'document' }),
       'Borrower',
       '#fcd34d'
     )
-    this.addActor('agreement', createDocument(1.8), 'Repayment Agreement', '#e2e8f0', 1.2)
-    this.actors.get('agreement')!.group.rotation.y = -0.35
+    this.addActor('agreement', createContractStand(), 'Repayment Agreement', '#fde68a', 2.15)
 
     this.addActor(
       'originator',
-      createPerson({ clothing: 0x38bdf8, hold: 'document' }),
+      createPerson({ clothing: 0x38bdf8, hair: 0x0f172a, hold: 'document' }),
       'Loan Originator',
       '#7dd3fc'
     )
     this.addActor(
       'underwriter',
-      createPerson({ clothing: 0x22d3ee, hold: 'clipboard' }),
+      createPerson({ clothing: 0x22d3ee, hair: 0x44403c, hold: 'clipboard' }),
       'Underwriter',
       '#67e8f9'
     )
-    this.addActor('broker', createPerson({ clothing: 0xa78bfa, hold: 'clipboard' }), 'Loan Broker', '#c4b5fd')
-    this.addActor('guarantor', createPerson({ clothing: 0xfb923c }), 'Guarantor', '#fdba74')
-    this.addActor('custodian', createPerson({ clothing: 0x94a3b8, hold: 'coins' }), 'Collateral Custodian', '#cbd5e1')
-    this.addActor('servicer', createPerson({ clothing: 0xe879f9 }), 'Loan Servicer', '#f0abfc')
+    this.addActor(
+      'broker',
+      createPerson({ clothing: 0xa78bfa, hair: 0x1e1b4b, hold: 'clipboard' }),
+      'Loan Broker',
+      '#c4b5fd'
+    )
+    this.addActor('guarantor', createPerson({ clothing: 0xfb923c, hair: 0x7c2d12 }), 'Guarantor', '#fdba74')
+    this.addActor(
+      'custodian',
+      createPerson({ clothing: 0x94a3b8, hair: 0x334155, hold: 'coins' }),
+      'Collateral Custodian',
+      '#cbd5e1'
+    )
+    this.addActor('servicer', createPerson({ clothing: 0xe879f9, hair: 0x4a044e }), 'Loan Servicer', '#f0abfc')
     ADVANCED_ORDER.forEach((id) => {
       const actor = this.actors.get(id)
       if (actor) actor.group.visible = false
     })
-
-    this.addPath('depositor-vault', 'depositor', 'vault', COLORS.depositor)
-    this.addPath('vault-borrower', 'vault', 'borrower', COLORS.borrower)
-    this.addPath('borrower-vault', 'borrower', 'vault', COLORS.interest)
 
     this.rulesBoard = this.makeRulesBoard()
     this.scene.add(this.rulesBoard)
@@ -217,15 +221,6 @@ export class LendingNetworkScene {
     if (id === 'administrator') mesh.rotation.y = 0.45
     this.scene.add(group)
     this.actors.set(id, { group })
-  }
-
-  private addPath(key: string, from: EntityId, to: EntityId, color: number) {
-    const a = ENTITY_POSITIONS[from]
-    const b = ENTITY_POSITIONS[to]
-    const strip = createPathStrip([a[0], 0, a[2]], [b[0], 0, b[2]], color)
-    strip.visible = true
-    this.paths.set(key, strip)
-    this.scene.add(strip)
   }
 
   private makeRulesBoard(): THREE.Group {
@@ -321,10 +316,10 @@ export class LendingNetworkScene {
       actor.group.traverse((obj) => {
         if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshStandardMaterial) {
           obj.material.transparent = !active
-          obj.material.opacity = active ? 1 : 0.38
+          obj.material.opacity = active ? 1 : 0.78
         }
         if ((obj as THREE.Sprite).isSprite) {
-          ;(obj as THREE.Sprite).material.opacity = active ? 1 : 0.4
+          ;(obj as THREE.Sprite).material.opacity = active ? 1 : 0.7
         }
       })
     })
@@ -347,19 +342,6 @@ export class LendingNetworkScene {
 
     this.rulesBoard.visible = state.currentStep <= 2 || !state.vault.configured
 
-    const link = stageHighlight(state.lifecycleStage)
-    this.paths.forEach((mesh, key) => {
-      const mat = mesh.material as THREE.MeshStandardMaterial
-      const active =
-        link &&
-        ((key === `${link.from}-${link.to}`) ||
-          (key === 'borrower-vault' && (link.from === 'borrower' && link.to === 'vault')))
-      const danger = state.defaultedConnection && key === 'borrower-vault'
-      mat.emissiveIntensity = danger ? 0.8 : active ? 0.55 : 0.12
-      mat.opacity = danger ? 0.7 : active ? 0.7 : 0.28
-      mat.color = new THREE.Color(danger ? COLORS.risk : (mat.color as THREE.Color))
-    })
-
     ADVANCED_ORDER.forEach((id, idx) => {
       const actor = this.actors.get(id)
       if (actor) actor.group.visible = state.advancedReveal > idx
@@ -375,8 +357,8 @@ export class LendingNetworkScene {
   }
 
   private spawnTransfer(anim: AnimationRequest) {
-    const from = new THREE.Vector3(...ENTITY_POSITIONS[anim.from]).setY(0.9)
-    const to = new THREE.Vector3(...ENTITY_POSITIONS[anim.to]).setY(0.9)
+    const from = new THREE.Vector3(...ENTITY_POSITIONS[anim.from]).setY(1.15)
+    const to = new THREE.Vector3(...ENTITY_POSITIONS[anim.to]).setY(1.15)
     if (this.reducedMotion) {
       const cb = this.hooks.takeCallback?.(anim.id)
       cb?.()

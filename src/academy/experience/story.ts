@@ -44,7 +44,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: 'The administrator sets vault limits, the permitted asset, deposit rules, and borrowing parameters.',
     why: 'Loans can only happen after someone has defined the rules the vault must follow.',
     focus: ['administrator', 'protocol'],
-    camera: { position: [3.6, 3.6, 4.8], lookAt: [0.6, 1.15, -2.6] }
+    camera: { position: [1.35, 2.2, 5.4], lookAt: [0.55, 1.25, -2.0] }
   },
   {
     id: 2,
@@ -53,7 +53,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: 'The administrator applies those rules to a real lending vault — a secure pool that will hold depositor capital.',
     why: 'The vault is the treasury. It is not a person and depositors do not own it.',
     focus: ['administrator', 'vault', 'protocol'],
-    camera: { position: [2.4, 3.2, 7.2], lookAt: [0.2, 0.95, -0.4] }
+    camera: { position: [1.15, 2.25, 6.4], lookAt: [0.2, 1.15, -0.15] }
   },
   {
     id: 3,
@@ -62,7 +62,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: `The depositor supplies $${STORY.deposit.toLocaleString()} to the lending vault.`,
     why: 'The vault needs liquidity before it can fund loans.',
     focus: ['depositor', 'vault'],
-    camera: { position: [-3.4, 2.4, 8.6], lookAt: [-1.4, 0.6, 0] }
+    camera: { position: [-2.2, 2.05, 6.5], lookAt: [-1.05, 1.1, 0.3] }
   },
   {
     id: 4,
@@ -71,7 +71,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: `Vault capital is now $${STORY.deposit.toLocaleString()} and available liquidity is $${STORY.deposit.toLocaleString()}.`,
     why: 'Deposited funds sit in the vault according to its lending rules, ready to be lent.',
     focus: ['vault'],
-    camera: { position: [0, 2.2, 7.2], lookAt: [0, 0.8, 0] }
+    camera: { position: [0.05, 2.15, 6.6], lookAt: [0, 1.15, 0.35] }
   },
   {
     id: 5,
@@ -80,7 +80,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: `The borrower requests $${STORY.loan.toLocaleString()} for 12 months at 10% APR, with monthly repayments.`,
     why: 'A loan starts as a request. Capital does not leave the vault until the request is approved and funded.',
     focus: ['borrower', 'vault'],
-    camera: { position: [3.4, 2.4, 8.6], lookAt: [1.4, 0.6, 0] }
+    camera: { position: [2.2, 2.05, 6.5], lookAt: [1.05, 1.1, 0.3] }
   },
   {
     id: 6,
@@ -89,7 +89,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: 'The protocol reviews the request against vault rules and available liquidity, then approves it.',
     why: 'Approval is a control step. In the institutional track this later expands to originator, underwriter, and broker.',
     focus: ['administrator', 'protocol', 'borrower', 'vault'],
-    camera: { position: [0.6, 3.2, 9.4], lookAt: [0.4, 1.1, -0.4] }
+    camera: { position: [0.35, 2.35, 7.6], lookAt: [0.25, 1.2, -0.15] }
   },
   {
     id: 7,
@@ -98,7 +98,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: `$${STORY.loan.toLocaleString()} leaves the vault and is received by the borrower. Available liquidity falls to $80,000.`,
     why: 'Borrowed money comes from depositor capital already sitting in the vault — not from the protocol printing funds.',
     focus: ['vault', 'borrower'],
-    camera: { position: [2.2, 2.6, 8.8], lookAt: [1.2, 0.7, 0] }
+    camera: { position: [1.7, 2.15, 6.8], lookAt: [1.0, 1.1, 0.35] }
   },
   {
     id: 8,
@@ -107,7 +107,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: `The borrower accepts principal $${STORY.loan.toLocaleString()}, 10% APR, 12 months, monthly payments of $${STORY.payment.toLocaleString()}.`,
     why: 'This is the obligation. Depositors do not sign each loan; the borrower does.',
     focus: ['borrower', 'agreement', 'vault'],
-    camera: { position: [3.6, 2.3, 7.8], lookAt: [2.4, 1.1, 0.4] }
+    camera: { position: [2.45, 2.05, 6.0], lookAt: [2.0, 1.25, 0.85] }
   },
   {
     id: 9,
@@ -116,7 +116,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: `The borrower pays $${STORY.payment.toLocaleString()}. Principal ($${STORY.principalPortion.toLocaleString()}) returns to vault liquidity. Interest ($${STORY.interestPortion.toLocaleString()}) is yield.`,
     why: 'Splitting principal from interest is the key: only interest grows the vault’s economic value.',
     focus: ['borrower', 'vault'],
-    camera: { position: [1.6, 2.8, 9.2], lookAt: [0.6, 0.7, 0] }
+    camera: { position: [1.2, 2.2, 7.2], lookAt: [0.55, 1.1, 0.3] }
   },
   {
     id: 10,
@@ -125,7 +125,7 @@ export const STORY_STEPS: StoryStep[] = [
     what: 'Interest raises the vault’s economic value. JRPU may later distribute that yield daily, weekly, or monthly as an application policy — not as a native XRPL daily cash payment.',
     why: 'The depositor benefits because the borrower paid for the use of pooled capital.',
     focus: ['depositor', 'vault'],
-    camera: { position: [-2.6, 2.6, 9], lookAt: [-1.2, 0.8, 0] }
+    camera: { position: [-2.05, 2.15, 6.8], lookAt: [-1.0, 1.1, 0.3] }
   }
 ]
 

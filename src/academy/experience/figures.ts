@@ -38,67 +38,89 @@ export function createGround(): THREE.Group {
 
 export function createPerson(opts: {
   clothing: number
+  hair?: number
   hold?: 'coins' | 'document' | 'clipboard' | 'none'
+  scale?: number
 }): THREE.Group {
   const g = new THREE.Group()
   g.userData.kind = 'person'
+  g.scale.setScalar(opts.scale ?? 1.32)
+
+  const skin = std(SKIN, { roughness: 0.72, metalness: 0 })
+  const cloth = std(opts.clothing, { roughness: 0.48 })
+  const hairMat = std(opts.hair ?? 0x1c1917, { roughness: 0.82, metalness: 0 })
+  const shoeMat = std(0x0f172a, { roughness: 0.55, metalness: 0.08 })
 
   const shadow = new THREE.Mesh(
-    new THREE.CircleGeometry(0.34, 20),
-    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.28, depthWrite: false })
+    new THREE.CircleGeometry(0.38, 20),
+    new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.32, depthWrite: false })
   )
   shadow.rotation.x = -Math.PI / 2
   shadow.position.y = 0.012
   g.add(shadow)
 
-  const legMat = std(0x1e293b, { roughness: 0.8 })
-  const legGeom = new THREE.CylinderGeometry(0.075, 0.09, 0.52, 10)
-  const leftLeg = new THREE.Mesh(legGeom, legMat)
-  leftLeg.position.set(-0.11, 0.26, 0)
-  const rightLeg = new THREE.Mesh(legGeom, legMat)
-  rightLeg.position.set(0.11, 0.26, 0)
-  g.add(leftLeg, rightLeg)
+  const hips = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.22, 0.18, 12), cloth)
+  hips.position.y = 0.78
+  const lLeg = new THREE.Mesh(new THREE.CapsuleGeometry(0.085, 0.5, 4, 10), cloth)
+  lLeg.position.set(-0.12, 0.4, 0)
+  const rLeg = lLeg.clone()
+  rLeg.position.x = 0.12
+  const lShoe = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.09, 0.28), shoeMat)
+  lShoe.position.set(-0.12, 0.065, 0.05)
+  const rShoe = lShoe.clone()
+  rShoe.position.x = 0.12
+  g.add(hips, lLeg, rLeg, lShoe, rShoe)
 
-  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.42, 6, 12), std(opts.clothing, { roughness: 0.45 }))
-  torso.position.y = 0.9
+  const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.23, 0.46, 6, 14), cloth)
+  torso.position.y = 1.12
   torso.name = 'hit'
-  g.add(torso)
+  const shoulders = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.16, 0.26), cloth)
+  shoulders.position.y = 1.36
+  g.add(torso, shoulders)
 
-  const head = new THREE.Mesh(new THREE.SphereGeometry(0.155, 16, 16), std(SKIN, { roughness: 0.7, metalness: 0 }))
-  head.position.y = 1.38
-  g.add(head)
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.08, 0.12, 10), skin)
+  neck.position.y = 1.48
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.2, 22, 20), skin)
+  head.position.y = 1.68
+  const hair = new THREE.Mesh(
+    new THREE.SphereGeometry(0.205, 18, 14, 0, Math.PI * 2, 0, Math.PI / 1.65),
+    hairMat
+  )
+  hair.position.y = 1.74
+  const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e293b })
+  const lEye = new THREE.Mesh(new THREE.SphereGeometry(0.028, 8, 8), eyeMat)
+  lEye.position.set(-0.07, 1.7, 0.175)
+  const rEye = lEye.clone()
+  rEye.position.x = 0.07
+  g.add(neck, head, hair, lEye, rEye)
 
-  const armGeom = new THREE.CapsuleGeometry(0.055, 0.38, 4, 8)
-  const armMat = std(opts.clothing, { roughness: 0.5 })
-  const leftArm = new THREE.Mesh(armGeom, armMat)
-  leftArm.position.set(-0.3, 0.95, 0)
-  leftArm.rotation.z = 0.18
-  const rightArm = new THREE.Mesh(armGeom, armMat)
-  rightArm.position.set(0.3, 0.95, 0)
-  rightArm.rotation.z = -0.18
+  const armGeom = new THREE.CapsuleGeometry(0.062, 0.42, 4, 10)
+  const leftArm = new THREE.Mesh(armGeom, cloth)
+  leftArm.position.set(-0.36, 1.14, 0)
+  leftArm.rotation.z = 0.2
+  const rightArm = new THREE.Mesh(armGeom, cloth)
+  rightArm.position.set(0.36, 1.14, 0)
+  rightArm.rotation.z = -0.2
   g.add(leftArm, rightArm)
 
   const hold = opts.hold ?? 'none'
   if (hold === 'coins') {
-    const stack = createCoinStack(0.16, COLORS.depositor)
-    stack.position.set(0.38, 0.82, 0.18)
-    stack.rotation.x = 0.2
-    rightArm.rotation.z = -0.7
-    rightArm.rotation.x = -0.35
+    const stack = createCoinStack(0.14, COLORS.depositor)
+    stack.position.set(0.42, 1.02, 0.2)
+    stack.rotation.x = 0.18
+    rightArm.rotation.z = -0.72
+    rightArm.rotation.x = -0.32
     g.add(stack)
   } else if (hold === 'document') {
-    const doc = createDocument(0.55)
-    doc.position.set(0.36, 0.92, 0.16)
-    doc.rotation.set(-0.4, 0.3, 0.15)
+    const doc = createDocument(0.58)
+    doc.position.set(0.4, 1.12, 0.18)
+    doc.rotation.set(-0.38, 0.28, 0.12)
     rightArm.rotation.z = -0.55
     g.add(doc)
   } else if (hold === 'clipboard') {
-    const board = new THREE.Mesh(
-      new THREE.BoxGeometry(0.28, 0.38, 0.03),
-      std(0xcbd5e1, { roughness: 0.4, metalness: 0.2 })
-    )
-    board.position.set(0.34, 0.95, 0.14)
-    board.rotation.set(-0.35, 0.25, 0.1)
+    const board = createDocument(0.5)
+    board.position.set(0.38, 1.12, 0.16)
+    board.rotation.set(-0.35, 0.22, 0.1)
     rightArm.rotation.z = -0.5
     g.add(board)
   }
@@ -135,20 +157,54 @@ export function createCoinStack(radius = 0.14, color = 0xfbbf24): THREE.Group {
 export function createDocument(scale = 1): THREE.Group {
   const g = new THREE.Group()
   g.scale.setScalar(scale)
+  const board = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.64, 0.03),
+    std(0x334155, { roughness: 0.45, metalness: 0.25 })
+  )
   const page = new THREE.Mesh(
     new THREE.BoxGeometry(0.42, 0.54, 0.02),
     std(0xf8fafc, { roughness: 0.85, metalness: 0 })
   )
-  g.add(page)
+  page.position.z = 0.02
+  g.add(board, page)
   const lineMat = new THREE.MeshBasicMaterial({ color: 0x64748b })
-  for (let i = 0; i < 4; i++) {
-    const line = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.025, 0.005), lineMat)
-    line.position.set(0, 0.14 - i * 0.09, 0.012)
+  for (let i = 0; i < 5; i++) {
+    const line = new THREE.Mesh(new THREE.BoxGeometry(0.28, i === 0 ? 0.035 : 0.022, 0.005), lineMat)
+    line.position.set(0, 0.16 - i * 0.085, 0.032)
     g.add(line)
   }
-  const seal = new THREE.Mesh(new THREE.CircleGeometry(0.05, 12), new THREE.MeshBasicMaterial({ color: COLORS.borrower }))
-  seal.position.set(0.12, -0.18, 0.014)
+  const seal = new THREE.Mesh(new THREE.CircleGeometry(0.05, 14), new THREE.MeshBasicMaterial({ color: COLORS.borrower }))
+  seal.position.set(0.12, -0.18, 0.034)
   g.add(seal)
+  return g
+}
+
+export function createContractStand(): THREE.Group {
+  const g = new THREE.Group()
+  g.userData.kind = 'contract'
+
+  const base = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.22, 0.26, 0.08, 16),
+    std(0x1e293b, { metalness: 0.45, roughness: 0.4 })
+  )
+  base.position.y = 0.04
+  const post = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.055, 1.15, 10),
+    std(0x64748b, { metalness: 0.5, roughness: 0.35 })
+  )
+  post.position.y = 0.62
+  const lectern = new THREE.Mesh(
+    new THREE.BoxGeometry(0.72, 0.06, 0.5),
+    std(0x334155, { metalness: 0.3, roughness: 0.45 })
+  )
+  lectern.position.y = 1.18
+  lectern.rotation.x = -0.22
+  g.add(base, post, lectern)
+
+  const doc = createDocument(1.15)
+  doc.position.set(0, 1.28, 0.02)
+  doc.rotation.x = -0.28
+  g.add(doc)
   return g
 }
 
@@ -211,6 +267,17 @@ export function createVault(): THREE.Group {
     g.add(spoke)
   }
 
+  const handle = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.34, 0.07), goldMat)
+  handle.position.set(0.28, 0.95, 0.78)
+  g.add(handle)
+  for (const x of [-1, 1]) {
+    for (const z of [-1, 1]) {
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.24), bodyMat)
+      foot.position.set(x * 0.68, 0.07, z * 0.5)
+      g.add(foot)
+    }
+  }
+
   const fill = new THREE.Mesh(
     new THREE.BoxGeometry(1.15, 1.05, 0.7),
     new THREE.MeshStandardMaterial({
@@ -247,30 +314,39 @@ export function createVault(): THREE.Group {
 
 export function createOffice(): THREE.Group {
   const g = new THREE.Group()
-  const wall = std(0x312e81, { roughness: 0.6, metalness: 0.15 })
-  const building = new THREE.Mesh(new THREE.BoxGeometry(1.7, 1.15, 1.1), wall)
-  building.position.y = 0.58
+  const wall = std(0x1e293b, { roughness: 0.48, metalness: 0.22 })
+  const accent = std(COLORS.protocol, { roughness: 0.35, metalness: 0.4, emissive: COLORS.protocolEmissive, emissiveIntensity: 0.18 })
+  const glass = new THREE.MeshStandardMaterial({
+    color: 0x38bdf8,
+    emissive: 0x0ea5e9,
+    emissiveIntensity: 0.25,
+    transparent: true,
+    opacity: 0.42,
+    metalness: 0.1,
+    roughness: 0.18
+  })
+
+  const building = new THREE.Mesh(new THREE.BoxGeometry(1.85, 1.7, 1.35), wall)
+  building.position.y = 0.95
   building.name = 'hit'
-  g.add(building)
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(2.05, 0.12, 1.5), accent)
+  roof.position.y = 1.86
+  const awning = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.08, 0.42), accent)
+  awning.position.set(0, 1.38, 0.82)
+  g.add(building, roof, awning)
 
-  const roof = new THREE.Mesh(
-    new THREE.ConeGeometry(1.25, 0.45, 4),
-    std(0x1e1b4b, { roughness: 0.5, metalness: 0.2 })
-  )
-  roof.position.y = 1.38
-  roof.rotation.y = Math.PI / 4
-  g.add(roof)
-
-  const windowMat = new THREE.MeshBasicMaterial({ color: 0xa5b4fc, transparent: true, opacity: 0.85 })
-  for (const x of [-0.38, 0.38]) {
-    const w = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.28, 0.04), windowMat)
-    w.position.set(x, 0.62, 0.56)
+  for (const x of [-0.42, 0.42]) {
+    const w = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.44, 0.05), glass)
+    w.position.set(x, 1.18, 0.7)
     g.add(w)
   }
-
-  const door = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.48, 0.04), std(0x0f172a, { roughness: 0.4 }))
-  door.position.set(0, 0.32, 0.56)
-  g.add(door)
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.72, 0.06), std(0x0f172a, { roughness: 0.4 }))
+  door.position.set(0, 0.46, 0.7)
+  const colL = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.07, 1.55, 10), accent)
+  colL.position.set(-0.82, 0.82, 0.62)
+  const colR = colL.clone()
+  colR.position.x = 0.82
+  g.add(door, colL, colR)
   return g
 }
 
@@ -323,8 +399,8 @@ export function createNameSprite(text: string, tint = '#e2e8f0'): THREE.Sprite {
   const sprite = new THREE.Sprite(
     new THREE.SpriteMaterial({ map, transparent: true, depthTest: true })
   )
-  sprite.scale.set(1.85, 0.46, 1)
-  sprite.position.y = 1.85
+  sprite.scale.set(2.05, 0.5, 1)
+  sprite.position.y = 2.42
   sprite.userData.texture = map
   return sprite
 }
