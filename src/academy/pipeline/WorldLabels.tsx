@@ -1,5 +1,5 @@
 import { useEffect, useState, type MutableRefObject } from 'react'
-import { ADVANCED_ROLES } from '../experience/story'
+import { isEntityVisible, PARTICIPANTS } from '../experience/lendingProcess'
 import { useSimulation } from '../simulation/SimulationContext'
 import type { EntityId } from '../simulation/types'
 
@@ -11,25 +11,11 @@ type LabelDef = {
   tint: string
 }
 
-const CORE: LabelDef[] = [
-  { id: 'depositor', text: 'Depositor', tint: '#6ee7b7' },
-  { id: 'vault', text: 'Lending Vault', tint: '#7dd3fc' },
-  { id: 'administrator', text: 'Administrator', tint: '#c7d2fe' },
-  { id: 'borrower', text: 'Borrower', tint: '#fcd34d' },
-  { id: 'agreement', text: 'Agreement', tint: '#fde68a' }
-]
-
-const ADVANCED: LabelDef[] = ADVANCED_ROLES.map((role) => ({
-  id: role.id,
-  text: role.label,
-  tint: '#e2e8f0'
-}))
-
 const LABEL_H = 26
-const HUD_RESERVE = 76
+const HUD_RESERVE = 128
 
 function measureWidth(text: string) {
-  return Math.min(168, Math.max(88, text.length * 8 + 22))
+  return Math.min(176, Math.max(88, text.length * 8 + 22))
 }
 
 function overlap(a: { x: number; y: number; w: number }, b: { x: number; y: number; w: number }) {
@@ -38,6 +24,18 @@ function overlap(a: { x: number; y: number; w: number }, b: { x: number; y: numb
 
 type ProjectHolder = {
   fn: ProjectFn | null
+}
+
+function shortLabel(id: EntityId, text: string, width: number) {
+  if (width >= 640) return text
+  if (id === 'administrator') return 'Admin'
+  if (id === 'vault') return 'Vault'
+  if (id === 'originator') return 'Originator'
+  if (id === 'underwriter') return 'Underwriter'
+  if (id === 'custodian') return 'Custodian'
+  if (id === 'servicer') return 'Servicer'
+  if (id === 'protocol') return 'XRPL'
+  return text
 }
 
 export function WorldLabels({
@@ -51,6 +49,8 @@ export function WorldLabels({
 }) {
   const sim = useSimulation()
   const [placed, setPlaced] = useState<(LabelDef & { x: number; y: number; w: number })[]>([])
+  const advanced = sim.state.showAdvancedRoles || sim.state.advancedReveal > 0
+  const agreementVisible = sim.state.agreementAccepted || sim.state.currentStep === 8
 
   useEffect(() => {
     if (!enabled) {
@@ -65,18 +65,14 @@ export function WorldLabels({
       if (project && root) {
         const width = root.clientWidth
         const height = root.clientHeight
-        const defs: LabelDef[] = [...CORE]
-        ADVANCED.forEach((role, i) => {
-          if (sim.state.advancedReveal > i) defs.push(role)
-        })
+        const defs: LabelDef[] = PARTICIPANTS.filter((p) =>
+          isEntityVisible(p.id, advanced, agreementVisible)
+        ).map((p) => ({ id: p.id, text: p.label, tint: p.tint }))
         const next: (LabelDef & { x: number; y: number; w: number })[] = []
         for (const def of defs) {
-          if (def.id === 'agreement' && !(sim.state.agreementAccepted || sim.state.currentStep === 8)) {
-            continue
-          }
           const pt = project(def.id)
           if (!pt) continue
-          const text = width < 640 && def.id === 'administrator' ? 'Admin' : width < 640 && def.id === 'vault' ? 'Vault' : def.text
+          const text = shortLabel(def.id, def.text, width)
           const w = measureWidth(text)
           next.push({
             ...def,
@@ -89,7 +85,7 @@ export function WorldLabels({
         next.sort((a, b) => a.x - b.x)
         for (const label of next) {
           label.x = Math.min(width - label.w / 2 - 8, Math.max(label.w / 2 + 8, label.x))
-          label.y = Math.min(height - LABEL_H / 2 - 8, Math.max(HUD_RESERVE + LABEL_H / 2, label.y))
+          label.y = Math.min(height - LABEL_H / 2 - 56, Math.max(HUD_RESERVE + LABEL_H / 2, label.y))
         }
         for (let pass = 0; pass < 4; pass++) {
           for (let i = 0; i < next.length; i++) {
@@ -118,7 +114,7 @@ export function WorldLabels({
     }
     raf = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(raf)
-  }, [enabled, projectRef, frameRef, sim.state.advancedReveal, sim.state.agreementAccepted, sim.state.currentStep])
+  }, [enabled, projectRef, frameRef, advanced, agreementVisible, sim.state.currentStep])
 
   if (!enabled) return null
 

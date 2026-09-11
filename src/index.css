@@ -45,13 +45,13 @@ body {
 
   .academy-main {
     min-height: 0;
-    overflow: hidden;
+    overflow: auto;
   }
 
   .academy-viz {
     flex: 1 1 auto;
-    height: auto;
-    min-height: 280px;
+    height: auto !important;
+    min-height: 520px;
   }
 }
 

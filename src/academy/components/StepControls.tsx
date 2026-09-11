@@ -5,10 +5,12 @@ import { useSimulation } from '../simulation/SimulationContext'
 
 export function StepControls({
   lesson,
-  reducedMotion
+  reducedMotion,
+  compact = false
 }: {
   lesson: number
   reducedMotion: boolean
+  compact?: boolean
 }) {
   const sim = useSimulation()
   const simRef = useRef(sim)
@@ -24,9 +26,10 @@ export function StepControls({
 
   useEffect(() => {
     if (!playing) return
-    const wait = reducedMotion ? 900 : 2600
+    const wait = reducedMotion ? 900 : 2800
     const id = window.setInterval(() => {
       const api = simRef.current
+      if (api.state.pendingAnimations.length > 0) return
       const current = api.state.currentStep
       if (current >= max) {
         setPlaying(false)
@@ -54,13 +57,21 @@ export function StepControls({
   }
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2.5 min-w-0">
+    <div
+      className={
+        compact
+          ? 'rounded-xl border border-slate-700/80 bg-slate-950/90 px-3 py-2 min-w-0 backdrop-blur-sm'
+          : 'rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2.5 min-w-0'
+      }
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="min-w-0">
           <div className="text-[10px] uppercase tracking-wide text-indigo-300">
             Step {step} of 10
           </div>
-          <div className="text-sm font-semibold text-slate-100 truncate">{meta?.title}</div>
+          <div className={(compact ? 'text-xs' : 'text-sm') + ' font-semibold text-slate-100 truncate'}>
+            {meta?.title}
+          </div>
         </div>
         <div className="flex flex-wrap gap-1.5">
           <Btn

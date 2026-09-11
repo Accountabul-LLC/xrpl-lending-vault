@@ -1,5 +1,7 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
-import { formatUsd, STORY_STEPS } from '../experience/story'
+import { EntityPanel } from '../components/EntityPanel'
+import { ProcessHud } from '../components/ProcessHud'
+import { StepControls } from '../components/StepControls'
 import { takeAnimationCallback, useSimulation } from '../simulation/SimulationContext'
 import type { EntityId } from '../simulation/types'
 import { FallbackPipeline } from './FallbackPipeline'
@@ -50,9 +52,7 @@ export function LendingPipelineCanvas({
     }
   }, [sim, sim.state.pendingAnimations, webglOk])
 
-  const { vault } = sim.state
   const showFallback = !webglOk
-  const step = STORY_STEPS[Math.max(0, sim.state.currentStep - 1)]
   const handleWebglFailure = (error: Error) => {
     setWebglError(error.message)
     setWebglOk(false)
@@ -67,7 +67,7 @@ export function LendingPipelineCanvas({
     <div
       ref={frameRef}
       data-viz-frame
-      className="academy-viz theme-locked relative w-full min-h-[240px] h-[min(42vh,380px)] sm:h-[min(46vh,440px)] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
+      className="academy-viz theme-locked relative w-full min-h-[360px] h-[min(82vh,860px)] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
     >
       {showFallback ? (
         <>
@@ -120,34 +120,20 @@ export function LendingPipelineCanvas({
         </PipelineErrorBoundary>
       )}
 
-      <div
-        data-viz-hud
-        className="absolute inset-x-0 top-0 z-[var(--z-banner)] pointer-events-none flex justify-center p-2 sm:p-3"
-      >
-        <div className="max-w-full rounded-lg border border-sky-500/40 bg-slate-950/88 px-3 py-2 text-center backdrop-blur-sm shadow-lg min-w-[12rem]">
-          {sim.state.statusBanner ? (
-            <div className="text-[10px] font-semibold tracking-wide text-indigo-200 truncate mb-1">
-              {sim.state.statusBanner}
-            </div>
-          ) : (
-            <div className="text-[10px] font-semibold tracking-wide text-sky-200 truncate mb-1">
-              {step ? `Step ${step.id}: ${step.title}` : 'Lending Vault'}
-            </div>
-          )}
-          <div className="grid grid-cols-3 gap-x-4 text-[10px] font-mono text-slate-300">
-            <div>
-              <div className="text-slate-500">Capital</div>
-              <div className="text-slate-100">{formatUsd(vault.totalCapital)}</div>
-            </div>
-            <div>
-              <div className="text-slate-500">Available</div>
-              <div className="text-emerald-300">{formatUsd(vault.availableLiquidity)}</div>
-            </div>
-            <div>
-              <div className="text-slate-500">Lent</div>
-              <div className="text-amber-300">{formatUsd(vault.outstandingLoans)}</div>
-            </div>
-          </div>
+      <ProcessHud />
+
+      {sim.state.selectedEntity && (
+        <div className="absolute right-2 top-[7.5rem] sm:top-[8.25rem] z-[var(--z-popover)] w-[min(100%-1rem,22rem)] max-h-[min(46%,26rem)] overflow-y-auto">
+          <EntityPanel />
+        </div>
+      )}
+
+      <div className="absolute inset-x-0 bottom-0 z-[var(--z-banner)] p-2 sm:p-3 pointer-events-none">
+        <div className="pointer-events-auto max-w-4xl mx-auto space-y-1.5">
+          <StepControls lesson={lesson} reducedMotion={reducedMotion} compact />
+          <p className="text-[10px] text-center text-slate-500">
+            Drag to orbit · scroll to zoom · click a person for their role
+          </p>
         </div>
       </div>
     </div>

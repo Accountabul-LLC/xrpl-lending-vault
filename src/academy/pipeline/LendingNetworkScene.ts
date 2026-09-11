@@ -11,7 +11,7 @@ import {
   createVault,
   disposeObject3D
 } from '../experience/figures'
-import { ADVANCED_ROLES } from '../experience/story'
+import { faceVaultYaw, isEntityVisible, processFocus } from '../experience/lendingProcess'
 import type { AnimationRequest, EntityId, SimulationState } from '../simulation/types'
 import {
   cameraForStep,
@@ -22,6 +22,8 @@ import {
   vaultFillRatio,
   type CameraPreset
 } from './theme'
+
+const VAULT_SCALE = 1.48
 
 type Actor = {
   group: THREE.Group
@@ -38,8 +40,6 @@ type Particle = {
   onComplete?: () => void
   done: boolean
 }
-
-const ADVANCED_ORDER: EntityId[] = ADVANCED_ROLES.map((r) => r.id)
 
 function arcPoint(from: THREE.Vector3, to: THREE.Vector3, t: number, lift: number): THREE.Vector3 {
   const p = from.clone().lerp(to, t)
@@ -90,9 +90,9 @@ export class LendingNetworkScene {
     this.hooks = hooks
 
     this.scene = new THREE.Scene()
-    this.scene.fog = new THREE.Fog(COLORS.bg, 18, 32)
+    this.scene.fog = new THREE.Fog(COLORS.bg, 22, 44)
 
-    this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 80)
+    this.camera = new THREE.PerspectiveCamera(40, 1, 0.1, 120)
     this.camera.position.set(...this.targetCam.position)
     this.camera.lookAt(...this.targetCam.lookAt)
 
@@ -128,10 +128,10 @@ export class LendingNetworkScene {
     this.controls.enablePan = true
     this.controls.enableZoom = true
     this.controls.enableRotate = true
-    this.controls.minDistance = 2.4
-    this.controls.maxDistance = 24
-    this.controls.minPolarAngle = 0.12
-    this.controls.maxPolarAngle = Math.PI / 2 - 0.05
+    this.controls.minDistance = 4.2
+    this.controls.maxDistance = 28
+    this.controls.minPolarAngle = 0.18
+    this.controls.maxPolarAngle = Math.PI / 2 - 0.08
     this.controls.target.set(...this.targetCam.lookAt)
     this.controls.addEventListener('start', () => {
       this.userOrbiting = true
@@ -150,16 +150,15 @@ export class LendingNetworkScene {
     this.scene.add(amb, key, rim)
     this.scene.add(createGround())
 
-    this.addActor('protocol', createOffice(), 'Protocol Office', '#c7d2fe', 2.35)
+    this.addActor('protocol', createOffice(), 'XRPL Ledger', '#c7d2fe', 2.35)
     this.addActor(
       'administrator',
       createPerson({ clothing: COLORS.administrator, hair: 0x334155, hold: 'clipboard' }),
-      'Administrator',
+      'Loan Administrator',
       '#c7d2fe'
     )
     const vault = createVault()
-    vault.scale.setScalar(1.12)
-    this.addActor('vault', vault, 'Lending Vault', '#7dd3fc', 2.35)
+    this.addActor('vault', vault, 'Lending Vault', '#7dd3fc', 2.55)
     this.actors.get('vault')!.fill = vault.userData.fill as THREE.Mesh
     this.addActor(
       'depositor',
@@ -201,10 +200,6 @@ export class LendingNetworkScene {
       '#cbd5e1'
     )
     this.addActor('servicer', createPerson({ clothing: 0xe879f9, hair: 0x4a044e }), 'Loan Servicer', '#f0abfc')
-    ADVANCED_ORDER.forEach((id) => {
-      const actor = this.actors.get(id)
-      if (actor) actor.group.visible = false
-    })
 
     this.rulesBoard = this.makeRulesBoard()
     this.scene.add(this.rulesBoard)
@@ -243,16 +238,17 @@ export class LendingNetworkScene {
     group.userData.entityId = id
     mesh.userData.entityId = id
     group.add(mesh)
-    if (id === 'depositor') mesh.rotation.y = Math.PI / 2
-    if (id === 'borrower') mesh.rotation.y = -Math.PI / 2
-    if (id === 'administrator') mesh.rotation.y = 0.45
+    if (id !== 'vault' && id !== 'protocol' && id !== 'agreement') {
+      const [x, , z] = ENTITY_POSITIONS[id]
+      mesh.rotation.y = faceVaultYaw(x, z)
+    }
     this.scene.add(group)
     this.actors.set(id, { group })
   }
 
   private makeRulesBoard(): THREE.Group {
     const g = new THREE.Group()
-    g.position.set(-1.55, 1.45, -2.85)
+    g.position.set(2.35, 1.55, -3.35)
     const board = new THREE.Mesh(
       new THREE.BoxGeometry(1.5, 0.95, 0.06),
       new THREE.MeshStandardMaterial({ color: 0x1e1b4b, metalness: 0.2, roughness: 0.5 })
@@ -282,9 +278,9 @@ export class LendingNetworkScene {
   }
 
   setAdvancedVisible(show: boolean) {
-    ADVANCED_ORDER.forEach((id) => {
-      const actor = this.actors.get(id)
-      if (actor) actor.group.visible = show
+    this.actors.forEach((actor, id) => {
+      if (id === 'agreement' || id === 'vault') return
+      actor.group.visible = isEntityVisible(id, show, false)
     })
   }
 
@@ -300,52 +296,24 @@ export class LendingNetworkScene {
       this.controls.target.set(...cam.lookAt)
     }
 
-    const stepFocus = new Set(
-      (this.lesson >= 0
-        ? (['administrator', 'protocol', 'vault', 'depositor', 'borrower', 'agreement'] as EntityId[])
-        : []) 
-    )
-    const highlight = new Set(lessonFocusEntities(this.lesson))
-    if (state.currentStep) {
-      const fromStory = (
-        [
-          [],
-          ['administrator', 'protocol'],
-          ['administrator', 'vault', 'protocol'],
-          ['depositor', 'vault'],
-          ['vault'],
-          ['borrower', 'vault'],
-          ['administrator', 'protocol', 'borrower', 'vault'],
-          ['vault', 'borrower'],
-          ['borrower', 'agreement', 'vault'],
-          ['borrower', 'vault'],
-          ['depositor', 'vault']
-        ] as EntityId[][]
-      )[state.currentStep]
-      fromStory?.forEach((id) => highlight.add(id))
-    }
+    const advanced = state.showAdvancedRoles || state.advancedReveal > 0
+    const agreementVisible = state.agreementAccepted || state.currentStep === 8
+    const highlight = new Set(lessonFocusEntities(this.lesson, advanced))
+    processFocus(state.currentStep, advanced).forEach((id) => highlight.add(id))
+    if (state.selectedEntity) highlight.add(state.selectedEntity)
     this.focus = highlight
 
     this.actors.forEach((actor, id) => {
-      const isAdvanced = ADVANCED_ORDER.includes(id)
-      if (isAdvanced) {
-        const idx = ADVANCED_ORDER.indexOf(id)
-        actor.group.visible = state.advancedReveal > idx
-        return
-      }
-      if (id === 'agreement') {
-        actor.group.visible = state.agreementAccepted || state.currentStep === 8
-        return
-      }
-      actor.group.visible = true
-      const active = highlight.has(id) || state.selectedEntity === id
+      actor.group.visible = isEntityVisible(id, advanced, agreementVisible)
+      if (!actor.group.visible) return
+      const active = highlight.has(id) || id === 'vault'
       actor.group.traverse((obj) => {
         if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshStandardMaterial) {
           obj.material.transparent = !active
-          obj.material.opacity = active ? 1 : 0.78
+          obj.material.opacity = active ? 1 : 0.82
         }
         if ((obj as THREE.Sprite).isSprite) {
-          ;(obj as THREE.Sprite).material.opacity = active ? 1 : 0.7
+          ;(obj as THREE.Sprite).material.opacity = active ? 1 : 0.72
         }
       })
     })
@@ -354,7 +322,7 @@ export class LendingNetworkScene {
     if (vaultActor) {
       vaultActor.group.visible = true
       const ghost = !state.vault.configured
-      vaultActor.group.scale.setScalar(ghost ? 0.92 : 1)
+      vaultActor.group.scale.setScalar(ghost ? VAULT_SCALE * 0.9 : VAULT_SCALE)
       const fill = vaultActor.fill
       if (fill) {
         const ratio = Math.max(0.08, vaultFillRatio(state))
@@ -368,18 +336,12 @@ export class LendingNetworkScene {
 
     this.rulesBoard.visible = state.currentStep <= 2 || !state.vault.configured
 
-    ADVANCED_ORDER.forEach((id, idx) => {
-      const actor = this.actors.get(id)
-      if (actor) actor.group.visible = state.advancedReveal > idx
-    })
-
     for (const anim of state.pendingAnimations) {
       if (anim.started || this.animatingIds.has(anim.id)) continue
       this.animatingIds.add(anim.id)
       this.hooks.onAnimationStart?.(anim.id)
       this.spawnTransfer(anim)
     }
-    void stepFocus
   }
 
   private spawnTransfer(anim: AnimationRequest) {
@@ -547,18 +509,18 @@ export class LendingNetworkScene {
     const w = this.root.clientWidth
     if (w > 0 && w < 700) {
       const dir = pos.clone().sub(look)
-      if (dir.lengthSq() < 0.01) dir.set(0.2, 2.4, 8)
-      dir.multiplyScalar(1.7)
+      if (dir.lengthSq() < 0.01) dir.set(0.2, 5.6, 13)
+      dir.multiplyScalar(1.22)
       pos.copy(look).add(dir)
-      pos.y = Math.max(pos.y, 3.15)
-      if (Math.abs(pos.z) < 11) pos.z = Math.sign(pos.z || 1) * 11
+      pos.y = Math.max(pos.y, 5.4)
+      if (Math.abs(pos.z) < 13) pos.z = Math.sign(pos.z || 1) * 13
     }
     return pos
   }
 
   projectEntity(id: EntityId): { x: number; y: number } | null {
     const pos = new THREE.Vector3(...ENTITY_POSITIONS[id])
-    pos.y += id === 'vault' || id === 'protocol' ? 2.15 : 2.35
+    pos.y += id === 'vault' || id === 'protocol' ? 2.65 : 2.4
     pos.project(this.camera)
     const { clientWidth: w, clientHeight: h } = this.root
     if (pos.z > 1) return null

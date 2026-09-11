@@ -15,7 +15,7 @@ function std(color: number, extra: ConstructorParameters<typeof THREE.MeshStanda
 export function createGround(): THREE.Group {
   const g = new THREE.Group()
   const floor = new THREE.Mesh(
-    new THREE.CircleGeometry(9.5, 48),
+    new THREE.CircleGeometry(14.5, 64),
     new THREE.MeshStandardMaterial({
       color: 0x0f172a,
       roughness: 0.95,
@@ -26,13 +26,29 @@ export function createGround(): THREE.Group {
   floor.receiveShadow = false
   g.add(floor)
 
-  const ring = new THREE.Mesh(
-    new THREE.RingGeometry(8.6, 9.2, 48),
-    new THREE.MeshBasicMaterial({ color: 0x1e293b, transparent: true, opacity: 0.7, side: THREE.DoubleSide })
+  const outer = new THREE.Mesh(
+    new THREE.RingGeometry(13.4, 14.1, 64),
+    new THREE.MeshBasicMaterial({ color: 0x1e293b, transparent: true, opacity: 0.75, side: THREE.DoubleSide })
   )
-  ring.rotation.x = -Math.PI / 2
-  ring.position.y = 0.015
-  g.add(ring)
+  outer.rotation.x = -Math.PI / 2
+  outer.position.y = 0.015
+  g.add(outer)
+
+  const deskRing = new THREE.Mesh(
+    new THREE.RingGeometry(4.35, 4.55, 64),
+    new THREE.MeshBasicMaterial({ color: 0x334155, transparent: true, opacity: 0.45, side: THREE.DoubleSide })
+  )
+  deskRing.rotation.x = -Math.PI / 2
+  deskRing.position.y = 0.018
+  g.add(deskRing)
+
+  const vaultPad = new THREE.Mesh(
+    new THREE.RingGeometry(1.35, 1.72, 48),
+    new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.28, side: THREE.DoubleSide })
+  )
+  vaultPad.rotation.x = -Math.PI / 2
+  vaultPad.position.y = 0.02
+  g.add(vaultPad)
   return g
 }
 
