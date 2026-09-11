@@ -423,7 +423,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
   }
 
   return (
-    <div className="academy-shell min-w-0 lg:h-[calc(100vh-3.25rem)] lg:min-h-[640px] grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] gap-3 lg:gap-4">
+    <div className="academy-shell min-w-0 grid grid-cols-1 lg:grid-cols-[minmax(200px,240px)_minmax(0,1fr)] gap-3 lg:gap-4">
       <aside className="relative z-[var(--z-sticky-sidebar)] min-w-0 flex flex-col gap-1 lg:overflow-visible">
         <div className="pb-1">
           <TrackToggle track={track} onChange={changeTrack} />
@@ -440,7 +440,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
         </label>
       </aside>
 
-      <div className="min-w-0 flex flex-col gap-2 lg:overflow-hidden">
+      <div className="academy-main min-w-0 flex flex-col gap-2">
         <header className="shrink-0 min-w-0">
           <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
             Lending protocol & vault
@@ -455,7 +455,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
           <StepControls lesson={lesson} reducedMotion={reduceMotion} />
         </div>
 
-        <div className="min-h-[220px] lg:min-h-0 flex-1 flex flex-col gap-2 min-w-0">
+        <div className="min-h-[240px] flex-1 flex flex-col gap-2 min-w-0">
           <LendingPipelineCanvas lesson={lesson} reduceMotionOverride={reduceMotion} />
           <LifecycleTracker stage={sim.state.lifecycleStage} />
         </div>
@@ -464,7 +464,7 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
           <InfoPanel />
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] gap-3 items-start min-h-0 lg:overflow-auto lg:max-h-[32vh]">
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_minmax(240px,300px)] gap-3 items-start min-h-0">
           <div className="min-w-0">
             <LessonCopy lesson={lesson} reduceMotion={reduceMotion} />
             <AdvancedRolesStrip />

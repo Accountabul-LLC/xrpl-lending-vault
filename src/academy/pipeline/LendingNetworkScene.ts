@@ -5,7 +5,6 @@ import {
   createContractStand,
   createDocument,
   createGround,
-  createNameSprite,
   createOffice,
   createPerson,
   createVault,
@@ -207,18 +206,12 @@ export class LendingNetworkScene {
     return Math.min(dpr, small ? 1.25 : 1.5)
   }
 
-  private addActor(id: EntityId, mesh: THREE.Group, label: string, tint: string, labelY?: number) {
+  private addActor(id: EntityId, mesh: THREE.Group, _label: string, _tint: string, _labelY?: number) {
     const group = new THREE.Group()
     group.position.set(...ENTITY_POSITIONS[id])
     group.userData.entityId = id
     mesh.userData.entityId = id
     group.add(mesh)
-    const sprite = createNameSprite(label, tint)
-    if (labelY != null) sprite.position.y = labelY
-    if (id === 'administrator') sprite.position.set(0.7, 2.45, 0)
-    if (id === 'protocol') sprite.position.set(0, 2.75, 0)
-    if (id === 'vault') sprite.position.y = 2.55
-    group.add(sprite)
     if (id === 'depositor') mesh.rotation.y = Math.PI / 2
     if (id === 'borrower') mesh.rotation.y = -Math.PI / 2
     if (id === 'administrator') mesh.rotation.y = 0.45
@@ -234,10 +227,6 @@ export class LendingNetworkScene {
       new THREE.MeshStandardMaterial({ color: 0x1e1b4b, metalness: 0.2, roughness: 0.5 })
     )
     g.add(board)
-    const sprite = createNameSprite('Vault rules', '#c7d2fe')
-    sprite.position.set(0, 0.7, 0.05)
-    sprite.scale.set(1.4, 0.35, 1)
-    g.add(sprite)
     return g
   }
 
@@ -466,10 +455,10 @@ export class LendingNetworkScene {
 
     if (this.camLerp < 1) {
       this.camLerp = Math.min(1, this.camLerp + dt * (this.reducedMotion ? 4 : 1.15))
-      const ease = 1 - Math.pow(1 - this.camLerp, 3)
-      this.camera.position.lerp(new THREE.Vector3(...this.targetCam.position), 0.08 + ease * 0.12)
-      this.camera.lookAt(...this.targetCam.lookAt)
     }
+    const ease = 1 - Math.pow(1 - Math.min(1, this.camLerp), 3)
+    this.camera.position.lerp(this.framedPosition(), 0.1 + ease * 0.14)
+    this.camera.lookAt(...this.targetCam.lookAt)
 
     if (!this.reducedMotion) {
       this.actors.forEach((actor, id) => {
@@ -511,9 +500,24 @@ export class LendingNetworkScene {
     this.renderer.render(this.scene, this.camera)
   }
 
+  private framedPosition(): THREE.Vector3 {
+    const look = new THREE.Vector3(...this.targetCam.lookAt)
+    const pos = new THREE.Vector3(...this.targetCam.position)
+    const w = this.root.clientWidth
+    if (w > 0 && w < 700) {
+      const dir = pos.clone().sub(look)
+      if (dir.lengthSq() < 0.01) dir.set(0.2, 2.4, 8)
+      dir.multiplyScalar(1.7)
+      pos.copy(look).add(dir)
+      pos.y = Math.max(pos.y, 3.15)
+      if (Math.abs(pos.z) < 11) pos.z = Math.sign(pos.z || 1) * 11
+    }
+    return pos
+  }
+
   projectEntity(id: EntityId): { x: number; y: number } | null {
     const pos = new THREE.Vector3(...ENTITY_POSITIONS[id])
-    pos.y += 1.2
+    pos.y += id === 'vault' || id === 'protocol' ? 2.15 : 2.35
     pos.project(this.camera)
     const { clientWidth: w, clientHeight: h } = this.root
     if (pos.z > 1) return null

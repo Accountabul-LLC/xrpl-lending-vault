@@ -31,10 +31,26 @@ body {
   min-width: 0;
 }
 
-/* Academy desktop workstation: prefer one page scroll, no nested sidebar scroll */
-@media (min-width: 1024px) {
+/* Tall desktops: fill the window without clipping chrome. Short laptops scroll as one page. */
+@media (min-width: 1024px) and (min-height: 900px) {
+  .academy-shell {
+    height: calc(100vh - 3.25rem);
+    min-height: 0;
+  }
+
   .academy-shell > aside {
     overflow: visible;
+  }
+
+  .academy-main {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .academy-viz {
+    flex: 1 1 auto;
+    height: auto;
+    min-height: 280px;
   }
 }
 

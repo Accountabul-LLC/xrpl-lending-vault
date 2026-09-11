@@ -1,8 +1,10 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { formatUsd, STORY_STEPS } from '../experience/story'
 import { takeAnimationCallback, useSimulation } from '../simulation/SimulationContext'
+import type { EntityId } from '../simulation/types'
 import { FallbackPipeline } from './FallbackPipeline'
 import { PipelineErrorBoundary } from './PipelineErrorBoundary'
+import { WorldLabels } from './WorldLabels'
 
 const SceneLoader = lazy(() => import('./SceneMount'))
 
@@ -33,6 +35,9 @@ export function LendingPipelineCanvas({
   const [webglError, setWebglError] = useState<string | null>(null)
   const [sceneAttempt, setSceneAttempt] = useState(0)
   const frameRef = useRef<HTMLDivElement>(null)
+  const projectRef = useRef<{ fn: ((id: EntityId) => { x: number; y: number } | null) | null }>({
+    fn: null
+  })
 
   useEffect(() => {
     if (webglOk) return
@@ -62,7 +67,7 @@ export function LendingPipelineCanvas({
     <div
       ref={frameRef}
       data-viz-frame
-      className="relative w-full min-h-[280px] h-[min(56vh,560px)] sm:h-[min(62vh,640px)] lg:min-h-[440px] lg:flex-1 lg:h-auto rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
+      className="academy-viz relative w-full min-h-[240px] h-[min(42vh,380px)] sm:h-[min(46vh,440px)] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
     >
       {showFallback ? (
         <>
@@ -105,9 +110,12 @@ export function LendingPipelineCanvas({
               onEntityClick={(id) => sim.selectEntity(id)}
               onAnimationComplete={(id) => sim.clearAnimation(animSafe(id))}
               onAnimationStart={(id) => sim.startAnimation(id)}
-              registerProject={() => {}}
+              registerProject={(fn) => {
+                projectRef.current.fn = fn
+              }}
               onWebglFailure={handleWebglFailure}
             />
+            <WorldLabels projectRef={projectRef} frameRef={frameRef} enabled={webglOk} />
           </Suspense>
         </PipelineErrorBoundary>
       )}
