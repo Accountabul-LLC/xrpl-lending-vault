@@ -17,10 +17,12 @@
 ## Camera
 
 - Canvas width `< 700px` frames the party from farther back so people are not cropped.
+- Orbit hint no longer overlays the 3D scene. Controls live in a View legend above the canvas.
 
 ## Files
 
 - `src/academy/Academy.tsx`
+- `src/academy/components/ViewLegend.tsx`
 - `src/academy/pipeline/WorldLabels.tsx`
 - `src/academy/pipeline/LendingPipelineCanvas.tsx`
 - `src/academy/pipeline/LendingNetworkScene.ts`

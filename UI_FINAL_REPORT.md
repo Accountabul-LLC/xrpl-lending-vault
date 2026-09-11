@@ -14,6 +14,7 @@ Nothing in the primary teaching chrome overlaps at 100% zoom on 1366×768, 1920�
 | Previous / Next on the 3D floor | Pass — chrome sits below the scene |
 | Phone side cropping | Pass — camera pulls back under 700px |
 | Play controls covered | Pass |
+| Orbit hint on the animation | Pass — View legend sits above the canvas |
 
 ## Remaining (accepted)
 

@@ -6,6 +6,7 @@ import { LessonNav } from './components/LessonNav'
 import { LessonPager } from './components/LessonPager'
 import { LifecycleTracker } from './components/LifecycleTracker'
 import { StepControls } from './components/StepControls'
+import { ViewLegend } from './components/ViewLegend'
 import { ADVANCED_ROLES, formatUsd, STORY } from './experience/story'
 import Institutional from './institutional/Institutional'
 import { INST_LESSONS } from './institutional/glossary'
@@ -461,8 +462,9 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
           />
         </header>
 
-        <div className="shrink-0">
+        <div className="shrink-0 space-y-2">
           <StepControls lesson={lesson} reducedMotion={reduceMotion} />
+          <ViewLegend />
         </div>
 
         <div className="min-h-[240px] flex-1 flex flex-col gap-2 min-w-0">

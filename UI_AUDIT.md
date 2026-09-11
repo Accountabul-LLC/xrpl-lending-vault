@@ -16,6 +16,7 @@ Application Shell (#root)
     │   └── Main column
     │       ├── Lesson title
     │       ├── Step controls (Play / Previous / Next)
+    │       ├── View legend (orbit / zoom / pan)
     │       ├── 3D canvas
     │       │   ├── WebGL scene
     │       │   ├── CSS world labels z=12

@@ -60,3 +60,15 @@ Observed: A 32vh nested scroller under an already clipped column.
 Expected: One primary page scroll.
 Fix: Remove `lg:max-h-[32vh] overflow-auto` from extras.
 Status: Resolved
+
+UI-306
+Title: Orbit hint covered the 3D animation
+Severity: Medium
+Page: Academy
+Component: LendingPipelineCanvas overlay
+Viewport: 1366×768, 1920×1080
+Observed: “Drag to orbit · Scroll to zoom · Right-drag to pan” sat on the floor of the scene over people, vault, coins, and the contract.
+Expected: Camera controls stay readable without covering the animation.
+Root cause: Absolute overlay pinned to the bottom of the visualization frame.
+Fix: Remove the overlay. Add a View legend above the canvas (Drag = Orbit, Scroll = Zoom, Right-drag = Pan).
+Status: Resolved
