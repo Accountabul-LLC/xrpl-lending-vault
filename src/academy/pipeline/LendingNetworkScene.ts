@@ -248,7 +248,7 @@ export class LendingNetworkScene {
 
   private makeRulesBoard(): THREE.Group {
     const g = new THREE.Group()
-    g.position.set(2.35, 1.55, -3.35)
+    g.position.set(5.55, 1.4, 5.25)
     const board = new THREE.Mesh(
       new THREE.BoxGeometry(1.5, 0.95, 0.06),
       new THREE.MeshStandardMaterial({ color: 0x1e1b4b, metalness: 0.2, roughness: 0.5 })
