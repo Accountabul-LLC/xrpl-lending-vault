@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { Btn } from '../../ui'
 import { LessonNav } from '../components/LessonNav'
+import { LessonPager } from '../components/LessonPager'
 import {
   complexityForReveal,
   INST_LESSONS,
@@ -63,13 +63,22 @@ export default function Institutional({
       </aside>
 
       <div className={'space-y-4 min-w-0' + (reduceMotion ? ' motion-safe-off' : '')}>
-        <div className="min-w-0">
-          <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
-            Institutional lending
-          </p>
-          <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
-            Lesson {lesson + 1}: {INST_LESSONS[lesson]}
-          </h1>
+        <div className="min-w-0 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
+              Institutional lending
+            </p>
+            <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
+              Lesson {lesson + 1}: {INST_LESSONS[lesson]}
+            </h1>
+          </div>
+          <LessonPager
+            lesson={lesson}
+            lastIndex={INST_LESSONS.length - 1}
+            onPrev={() => setLesson((n) => n - 1)}
+            onNext={() => setLesson((n) => n + 1)}
+            onFinish={onOpenLab}
+          />
         </div>
         <InstLessonBody
           n={lesson}
@@ -84,20 +93,6 @@ export default function Institutional({
             setLabeling
           }}
         />
-        <div className="flex flex-wrap gap-2 pt-2">
-          <Btn
-            className="bg-slate-700 hover:bg-slate-600"
-            disabled={lesson === 0}
-            onClick={() => setLesson((n) => n - 1)}
-          >
-            Previous lesson
-          </Btn>
-          {lesson < INST_LESSONS.length - 1 ? (
-            <Btn onClick={() => setLesson((n) => n + 1)}>Next lesson</Btn>
-          ) : (
-            <Btn onClick={onOpenLab}>Open the live Devnet lab</Btn>
-          )}
-        </div>
       </div>
     </div>
   )

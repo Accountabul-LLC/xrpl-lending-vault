@@ -150,6 +150,11 @@ export function LendingPipelineCanvas({
           </div>
         </div>
       </div>
+      <div className="absolute inset-x-0 bottom-0 z-[12] pointer-events-none p-2 sm:p-3">
+        <div className="text-[10px] text-slate-400 text-center sm:text-left">
+          Drag to orbit · Scroll to zoom · Right-drag to pan
+        </div>
+      </div>
     </div>
   )
 }

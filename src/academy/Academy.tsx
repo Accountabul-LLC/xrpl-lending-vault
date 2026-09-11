@@ -3,6 +3,7 @@ import { Btn, Card, Stat } from '../ui'
 import { EntityPanel } from './components/EntityPanel'
 import { InfoPanel } from './components/InfoPanel'
 import { LessonNav } from './components/LessonNav'
+import { LessonPager } from './components/LessonPager'
 import { LifecycleTracker } from './components/LifecycleTracker'
 import { StepControls } from './components/StepControls'
 import { ADVANCED_ROLES, formatUsd, STORY } from './experience/story'
@@ -441,14 +442,23 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
       </aside>
 
       <div className="academy-main min-w-0 flex flex-col gap-2">
-        <header className="shrink-0 min-w-0">
-          <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
-            Lending protocol & vault
-          </p>
-          <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
-            Lesson {lesson + 1}: {LESSONS[lesson]}
-          </h1>
-          <p className="text-xs text-slate-400 mt-1 max-w-4xl">{lessonBlurb[lesson]}</p>
+        <header className="shrink-0 min-w-0 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[10px] uppercase tracking-wide text-indigo-300 leading-none">
+              Lending protocol & vault
+            </p>
+            <h1 className="text-xl lg:text-2xl font-bold mt-0.5 leading-tight break-words">
+              Lesson {lesson + 1}: {LESSONS[lesson]}
+            </h1>
+            <p className="text-xs text-slate-400 mt-1 max-w-4xl">{lessonBlurb[lesson]}</p>
+          </div>
+          <LessonPager
+            lesson={lesson}
+            lastIndex={LESSONS.length - 1}
+            onPrev={() => setLesson((n) => n - 1)}
+            onNext={() => setLesson((n) => n + 1)}
+            onFinish={onOpenLab}
+          />
         </header>
 
         <div className="shrink-0">
@@ -472,21 +482,6 @@ function AcademyInner({ onOpenLab }: { onOpenLab: () => void }) {
           <div className="space-y-2 min-w-0">
             <EntityPanel />
           </div>
-        </div>
-
-        <div className="flex flex-wrap gap-2 pt-1 pb-2 shrink-0">
-          <Btn
-            className="bg-slate-700 hover:bg-slate-600"
-            disabled={lesson === 0}
-            onClick={() => setLesson((n) => n - 1)}
-          >
-            Previous lesson
-          </Btn>
-          {lesson < LESSONS.length - 1 ? (
-            <Btn onClick={() => setLesson((n) => n + 1)}>Next lesson</Btn>
-          ) : (
-            <Btn onClick={onOpenLab}>Open the live Devnet lab</Btn>
-          )}
         </div>
       </div>
     </div>

@@ -1,4 +1,5 @@
 import * as THREE from 'three'
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
 import {
   createAmountSprite,
   createCoin,
@@ -79,6 +80,10 @@ export class LendingNetworkScene {
   private resizeObserver: ResizeObserver | null = null
   private rulesBoard: THREE.Group
   private focus = new Set<EntityId>()
+  private controls: OrbitControls
+  private userOrbiting = false
+  private pointerDown = { x: 0, y: 0 }
+  private onPointerUp: (e: PointerEvent) => void
 
   constructor(root: HTMLElement, hooks: SceneHooks = {}) {
     this.root = root
@@ -114,7 +119,28 @@ export class LendingNetworkScene {
     canvas.style.maxWidth = '100%'
     canvas.style.maxHeight = '100%'
     canvas.style.display = 'block'
-    canvas.style.touchAction = 'manipulation'
+    canvas.style.touchAction = 'none'
+    canvas.style.cursor = 'grab'
+
+    this.controls = new OrbitControls(this.camera, canvas)
+    this.controls.enableDamping = true
+    this.controls.dampingFactor = 0.08
+    this.controls.enablePan = true
+    this.controls.enableZoom = true
+    this.controls.enableRotate = true
+    this.controls.minDistance = 2.4
+    this.controls.maxDistance = 24
+    this.controls.minPolarAngle = 0.12
+    this.controls.maxPolarAngle = Math.PI / 2 - 0.05
+    this.controls.target.set(...this.targetCam.lookAt)
+    this.controls.addEventListener('start', () => {
+      this.userOrbiting = true
+      this.camLerp = 1
+      canvas.style.cursor = 'grabbing'
+    })
+    this.controls.addEventListener('end', () => {
+      canvas.style.cursor = 'grab'
+    })
 
     const amb = new THREE.AmbientLight(0xb6c2d9, 0.7)
     const key = new THREE.DirectionalLight(0xffffff, 0.95)
@@ -184,13 +210,18 @@ export class LendingNetworkScene {
     this.scene.add(this.rulesBoard)
 
     this.onResize = () => this.resize()
-    this.onPointer = (e) => this.handlePointer(e)
+    this.onPointer = (e) => {
+      this.pointerDown.x = e.clientX
+      this.pointerDown.y = e.clientY
+    }
+    this.onPointerUp = (e) => this.handlePointer(e)
     this.onVisibility = () => {
       this.visible = document.visibilityState === 'visible'
       if (this.visible && !this.disposed) this.start()
     }
     window.addEventListener('resize', this.onResize)
     canvas.addEventListener('pointerdown', this.onPointer)
+    canvas.addEventListener('pointerup', this.onPointerUp)
     document.addEventListener('visibilitychange', this.onVisibility)
     if (typeof ResizeObserver !== 'undefined') {
       this.resizeObserver = new ResizeObserver(() => this.resize())
@@ -237,6 +268,7 @@ export class LendingNetworkScene {
   setLesson(lesson: number) {
     this.lesson = lesson
     this.focus = new Set(lessonFocusEntities(lesson))
+    this.userOrbiting = false
     this.clearTransfers()
   }
 
@@ -259,11 +291,13 @@ export class LendingNetworkScene {
   syncState(state: SimulationState) {
     const cam = cameraForStep(state.currentStep, this.lesson)
     if (
-      cam.position[0] !== this.targetCam.position[0] ||
-      cam.position[2] !== this.targetCam.position[2]
+      !this.userOrbiting &&
+      (cam.position[0] !== this.targetCam.position[0] ||
+        cam.position[2] !== this.targetCam.position[2])
     ) {
       this.targetCam = cam
       this.camLerp = 0
+      this.controls.target.set(...cam.lookAt)
     }
 
     const stepFocus = new Set(
@@ -404,6 +438,9 @@ export class LendingNetworkScene {
   }
 
   private handlePointer(e: PointerEvent) {
+    const dx = e.clientX - this.pointerDown.x
+    const dy = e.clientY - this.pointerDown.y
+    if (Math.hypot(dx, dy) > 6) return
     const rect = this.renderer.domElement.getBoundingClientRect()
     this.pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1
     this.pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1
@@ -453,12 +490,16 @@ export class LendingNetworkScene {
     const dt = Math.min(0.05, this.timer.getDelta())
     this.pulse += dt
 
-    if (this.camLerp < 1) {
-      this.camLerp = Math.min(1, this.camLerp + dt * (this.reducedMotion ? 4 : 1.15))
+    if (!this.userOrbiting) {
+      if (this.camLerp < 1) {
+        this.camLerp = Math.min(1, this.camLerp + dt * (this.reducedMotion ? 4 : 1.15))
+      }
+      const ease = 1 - Math.pow(1 - Math.min(1, this.camLerp), 3)
+      const framed = this.framedPosition()
+      this.camera.position.lerp(framed, 0.1 + ease * 0.14)
+      this.controls.target.lerp(new THREE.Vector3(...this.targetCam.lookAt), 0.12)
     }
-    const ease = 1 - Math.pow(1 - Math.min(1, this.camLerp), 3)
-    this.camera.position.lerp(this.framedPosition(), 0.1 + ease * 0.14)
-    this.camera.lookAt(...this.targetCam.lookAt)
+    this.controls.update()
 
     if (!this.reducedMotion) {
       this.actors.forEach((actor, id) => {
@@ -533,6 +574,8 @@ export class LendingNetworkScene {
     window.removeEventListener('resize', this.onResize)
     document.removeEventListener('visibilitychange', this.onVisibility)
     this.renderer.domElement.removeEventListener('pointerdown', this.onPointer)
+    this.renderer.domElement.removeEventListener('pointerup', this.onPointerUp)
+    this.controls.dispose()
     this.particles.forEach((p) => {
       this.scene.remove(p.mesh)
       disposeObject3D(p.mesh)
