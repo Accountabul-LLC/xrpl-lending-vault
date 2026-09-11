@@ -12,7 +12,7 @@ type LabelDef = {
 }
 
 const LABEL_H = 26
-const HUD_RESERVE = 128
+const HUD_RESERVE = 96
 
 function measureWidth(text: string) {
   return Math.min(176, Math.max(88, text.length * 8 + 22))
@@ -85,7 +85,7 @@ export function WorldLabels({
         next.sort((a, b) => a.x - b.x)
         for (const label of next) {
           label.x = Math.min(width - label.w / 2 - 8, Math.max(label.w / 2 + 8, label.x))
-          label.y = Math.min(height - LABEL_H / 2 - 56, Math.max(HUD_RESERVE + LABEL_H / 2, label.y))
+          label.y = Math.min(height - LABEL_H / 2 - 72, Math.max(HUD_RESERVE + LABEL_H / 2, label.y))
         }
         for (let pass = 0; pass < 4; pass++) {
           for (let i = 0; i < next.length; i++) {

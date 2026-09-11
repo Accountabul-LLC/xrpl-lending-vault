@@ -814,12 +814,14 @@ export function SimulationProvider({ children }: { children: ReactNode }) {
             return
           }
           const hop = chain[i]
+          if (hop.banner) dispatch({ type: 'SET_BANNER', banner: hop.banner })
           queueAnimation({
             from: hop.from,
             to: hop.to,
             amount: hop.amount,
             kind: hop.kind,
             label: hop.label,
+            packet: hop.packet,
             onComplete: () => run(i + 1)
           })
         }

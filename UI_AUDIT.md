@@ -1,46 +1,35 @@
-# UI Audit — Academy overlap pass
+# UI Audit — Lending process canvas
 
 Date: 2026-09-11
-Mode: QUICK UI FIX (overlap, overflow, chrome, canvas labels)
-App: JRPU Lending Academy (`/?lesson=1`)
-Stack: React, Vite, Tailwind, Three.js, custom CSS variables for z-index
+Mode: QUICK UI FIX after visual-system rebuild
+App: Accountabul XRPL Academy (`/?lesson=1`)
+Stack: React, Vite, Tailwind, Three.js, CSS z-index tokens
 
 ## Layout map
 
 ```
-Application Shell (#root)
-├── Sticky header (Academy / Live Devnet lab) z=20
+Application Shell
+├── Sticky header (Academy / Lab / Glossary / theme) z=20
 └── Main
-    ├── Academy
-    │   ├── Sidebar (lesson list) z=10
-    │   └── Main column
-    │       ├── Lesson title
-    │       ├── Step controls (Play / Previous / Next)
-    │       ├── View legend (orbit / zoom / pan)
-    │       ├── 3D canvas
-    │       │   ├── WebGL scene
-    │       │   ├── CSS world labels z=12
-    │       │   └── Stats HUD z=15
-    │       ├── Lifecycle tracker
-    │       ├── WHO / WHAT / WHY
-    │       ├── Lesson copy + entity panel
-    │       └── Previous lesson / Next lesson
-    └── Lab (not the primary defect surface this pass)
+    └── Academy
+        ├── Sidebar (track + lessons) z=10
+        └── Main column (one scroll context)
+            ├── Lesson title
+            ├── Process canvas (~62vh phone / ~82vh desktop)
+            │   ├── WebGL scene (ResizeObserver)
+            │   ├── CSS world labels z=12
+            │   ├── Process HUD (system status + capital + 7 stages) z=15
+            │   ├── Role card overlay z=40 (bottom-left, above controls)
+            │   └── Compact step controls z=15
+            ├── WHO / WHAT / WHY
+            └── Lesson copy
 ```
 
-## What was broken
+## What this pass checked
 
-The people-and-vault world was in place, but the **labeling and height model** still behaved like a node graph HUD:
-
-- 3D canvas sprites were huge relative to the close camera, so “Depositor / Lender” and “Borrower” clipped at the canvas overflow.
-- Protocol Office, Vault rules, Lending Vault, and Administrator sprites stacked on the vault.
-- `h-[min(56vh,560px)]` plus `lg:min-h-[440px]` plus `lg:h-[100vh]` plus `overflow: hidden` made the scene cover Previous/Next on 1366×768.
-- Phone camera stayed close, so people were cut off at the sides.
-
-## Approach
-
-Do not restyle the product. Fix the layout model:
-
-1. CSS HUD labels, clamped inside the canvas, collision-separated, reserved space under the stats chip.
-2. One page scroll on short laptops; fill-height only when `min-height: 900px` and `min-width: 1024px`.
-3. Farther camera under 700px wide.
+- Overlap of HUD, labels, role card, and Play/Next
+- Canvas height vs chrome on short laptops vs tall desktops
+- Nested scrollbars
+- Role-card field collisions
+- Stage-label crowding
+- 3D canvas staying inside its parent

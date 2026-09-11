@@ -32,10 +32,20 @@ body {
   min-width: 0;
 }
 
-/* Tall desktops: fill the window without clipping chrome. Short laptops scroll as one page. */
+.academy-viz {
+  height: min(62vh, 560px);
+}
+
+@media (min-width: 1024px) {
+  .academy-viz {
+    height: min(82vh, calc(100dvh - 11rem));
+  }
+}
+
+/* Tall desktops: fill remaining column without a second scrollbar. */
 @media (min-width: 1024px) and (min-height: 900px) {
   .academy-shell {
-    height: calc(100vh - 3.25rem);
+    height: calc(100dvh - 3.25rem);
     min-height: 0;
   }
 
@@ -51,7 +61,7 @@ body {
   .academy-viz {
     flex: 1 1 auto;
     height: auto !important;
-    min-height: 520px;
+    min-height: 480px;
   }
 }
 

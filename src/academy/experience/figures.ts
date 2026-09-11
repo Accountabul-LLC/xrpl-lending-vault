@@ -366,6 +366,52 @@ export function createOffice(): THREE.Group {
   return g
 }
 
+/** Compact XRPL settlement marker — not a dark office that reads as a hole in the ring. */
+export function createLedgerNode(): THREE.Group {
+  const g = new THREE.Group()
+  g.userData.kind = 'ledger'
+  const ring = new THREE.Mesh(
+    new THREE.TorusGeometry(0.55, 0.07, 10, 28),
+    std(COLORS.protocol, { emissive: COLORS.protocolEmissive, emissiveIntensity: 0.55, metalness: 0.6, roughness: 0.25 })
+  )
+  ring.rotation.x = Math.PI / 2
+  ring.position.y = 1.05
+  ring.name = 'hit'
+  const core = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.18, 0.18, 1.35, 12),
+    std(0x1e1b4b, { emissive: 0x4338ca, emissiveIntensity: 0.4, metalness: 0.45, roughness: 0.3 })
+  )
+  core.position.y = 0.78
+  const cap = new THREE.Mesh(
+    new THREE.SphereGeometry(0.22, 14, 14),
+    std(0xc7d2fe, { emissive: 0x818cf8, emissiveIntensity: 0.5, metalness: 0.7, roughness: 0.2 })
+  )
+  cap.position.y = 1.52
+  const pad = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.62, 0.68, 0.08, 20),
+    std(0x1e293b, { roughness: 0.7 })
+  )
+  pad.position.y = 0.04
+  g.add(pad, core, ring, cap)
+  return g
+}
+
+export function createProperty(scale = 1): THREE.Group {
+  const g = new THREE.Group()
+  g.scale.setScalar(scale)
+  const wall = std(0xcbd5e1, { roughness: 0.55, metalness: 0.08 })
+  const roofMat = std(0x0ea5e9, { emissive: 0x0369a1, emissiveIntensity: 0.25, roughness: 0.4 })
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.32, 0.32), wall)
+  body.position.y = 0.22
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(0.32, 0.22, 4), roofMat)
+  roof.position.y = 0.48
+  roof.rotation.y = Math.PI / 4
+  const door = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.02), std(0x0f172a))
+  door.position.set(0, 0.14, 0.17)
+  g.add(body, roof, door)
+  return g
+}
+
 export function createPathStrip(
   from: [number, number, number],
   to: [number, number, number],

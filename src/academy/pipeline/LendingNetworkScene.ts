@@ -6,8 +6,9 @@ import {
   createContractStand,
   createDocument,
   createGround,
-  createOffice,
+  createLedgerNode,
   createPerson,
+  createProperty,
   createVault,
   disposeObject3D
 } from '../experience/figures'
@@ -150,7 +151,7 @@ export class LendingNetworkScene {
     this.scene.add(amb, key, rim)
     this.scene.add(createGround())
 
-    this.addActor('protocol', createOffice(), 'XRPL Ledger', '#c7d2fe', 2.35)
+    this.addActor('protocol', createLedgerNode(), 'XRPL Ledger', '#c7d2fe', 2.35)
     this.addActor(
       'administrator',
       createPerson({ clothing: COLORS.administrator, hair: 0x334155, hold: 'clipboard' }),
@@ -355,15 +356,21 @@ export class LendingNetworkScene {
       return
     }
 
+    const packetKind =
+      anim.packet ?? (anim.kind === 'request' ? 'document' : anim.label?.toLowerCase().includes('collateral') ? 'property' : 'coin')
     const color = FLOW_COLORS[anim.kind]
     const count =
-      anim.kind === 'request' ? 1 : Math.min(8, Math.max(3, Math.round(Math.abs(anim.amount) / 20000) + 3))
-    const lift = anim.kind === 'interest' ? 1.35 : anim.kind === 'principal' ? 0.7 : 1.05
+      packetKind === 'document' || packetKind === 'property'
+        ? 1
+        : Math.min(8, Math.max(3, Math.round(Math.abs(anim.amount) / 20000) + 3))
+    const lift = packetKind === 'property' ? 1.55 : anim.kind === 'interest' ? 1.35 : anim.kind === 'principal' ? 0.7 : 1.05
 
     for (let i = 0; i < count; i++) {
       const packet = new THREE.Group()
-      if (anim.kind === 'request') {
+      if (packetKind === 'document') {
         packet.add(createDocument(0.85))
+      } else if (packetKind === 'property') {
+        packet.add(createProperty(1.05))
       } else {
         const coin = createCoin(color, anim.kind === 'interest' ? 0.13 : 0.15)
         coin.rotation.set(Math.PI / 2, 0, 0)

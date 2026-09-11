@@ -1,74 +1,66 @@
-# UI Findings — Academy overlap pass
+# UI Findings — Lending process canvas
 
-UI-301
-Title: 3D name tags clip at the canvas edge
+UI-001
+Title: Role card covered desks on the right of the vault
 Severity: High
-Page: Academy lesson 1
-Component: LendingNetworkScene name sprites
-Viewport: 1366×768, 1920×1080, 375×812
+Page: Academy canvas
+Component: EntityPanel overlay
+Viewport: 1280×800
 Zoom: 100%
-Observed: “Depositor / Lender” read as Depos…ender; “Borrower” read as Br…er.
-Expected: Full role names stay inside the visualization.
-Root cause: Canvas sprites were scaled larger than the close-camera frame; parent used overflow:hidden.
-Fix: Replace sprites with a CSS HUD; short names; clamp to canvas bounds.
+Observed: Card was `right-2 top-[7.5rem]` and sat on Originator / Guarantor.
+Expected: Inspecting a role does not hide the process ring.
+Root cause: Overlay used the top-right of the canvas, where several desks live.
+Fix: Move the card to bottom-left above the control bar; stack Inputs/Output/Status vertically.
 Status: Resolved
 
-UI-302
-Title: Vault / Administrator / Protocol Office labels stacked
-Severity: High
-Page: Academy lesson 1–2
-Component: 3D name sprites + rules-board sprite
-Viewport: 1366×768
-Observed: Four labels sat on top of the vault.
-Expected: One readable tag per actor, not stacked on the safe.
-Root cause: World-space sprites project to the same screen cluster; Protocol Office sits behind the vault.
-Fix: CSS labels with overlap resolution; drop Protocol Office and Vault rules sprites from the default view.
-Status: Resolved
-
-UI-303
-Title: Tall 3D panel covered Previous / Next lesson
+UI-002
+Title: 82vh canvas plus lesson chrome overflowed short laptops
 Severity: High
 Page: Academy
-Component: academy-shell + LendingPipelineCanvas
+Component: `.academy-viz`
 Viewport: 1366×768
 Zoom: 100%
-Observed: Previous lesson / Next lesson painted on the bottom of the 3D floor.
-Expected: Lesson chrome stays below the scene.
-Root cause: Canvas min-height 440px + 56vh + locked `100vh` column + overflow hidden. Flex overflow painted later siblings on top of the canvas.
-Fix: Remove the height lock on short laptops; canvas uses a bounded height and grows only on tall desktops.
+Observed: Canvas claimed most of the window, then WHO/WHAT/WHY required a second scroll inside the column.
+Expected: One primary scroll; canvas large but not fighting the header.
+Root cause: Inline `h-[min(82vh,860px)]` ignored remaining chrome; tall-desktop rule also set `overflow: auto` on the same column.
+Fix: Phone `min(62vh, 560px)`; desktop `min(82vh, calc(100dvh - 11rem))`; fill-height only at `min-height: 900px`.
 Status: Resolved
 
-UI-304
-Title: Phone camera cut people off at the sides
+UI-003
+Title: HUD stage labels collided in a flex row with connector lines
 Severity: Medium
-Page: Academy
-Component: LendingNetworkScene camera
+Page: Academy canvas
+Component: ProcessHud
+Viewport: 768 / 1024
+Zoom: 100%
+Observed: Seven labels plus `flex-1 last:flex-none` squeezed Origination/Underwriting.
+Expected: Loan status readable at 100% zoom.
+Root cause: Flex track with connecting hairlines, not a grid.
+Fix: `grid grid-cols-7` with truncated labels.
+Status: Resolved
+
+UI-004
+Title: Bottom hint plus large buttons covered world labels
+Severity: Medium
+Page: Academy canvas
+Component: StepControls overlay
 Viewport: 375×812
-Observed: Depositor and Borrower were clipped by the canvas.
-Expected: The full party stays in frame on a phone.
-Root cause: Desktop close-camera presets used on a ~6:13 aspect.
-Fix: Pull the camera back when the canvas is under 700px wide.
+Zoom: 100%
+Observed: “Drag to orbit…” and full-size buttons stacked under Servicer/Administrator labels.
+Expected: Controls stay in a reserved bottom strip.
+Root cause: Extra hint line and default Btn padding; label clamp only reserved 56px.
+Fix: Drop the hint; compact buttons; clamp labels 72px from the bottom.
 Status: Resolved
 
-UI-305
-Title: Nested extras scroller on short desktops
+UI-005
+Title: Receives/Produces values sat on the far edge of the role card
 Severity: Low
-Page: Academy
-Component: Lesson copy grid
-Viewport: 1366×768
-Observed: A 32vh nested scroller under an already clipped column.
-Expected: One primary page scroll.
-Fix: Remove `lg:max-h-[32vh] overflow-auto` from extras.
-Status: Resolved
-
-UI-306
-Title: Orbit hint covered the 3D animation
-Severity: Medium
-Page: Academy
-Component: LendingPipelineCanvas overlay
-Viewport: 1366×768, 1920×1080
-Observed: “Drag to orbit · Scroll to zoom · Right-drag to pan” sat on the floor of the scene over people, vault, coins, and the contract.
-Expected: Camera controls stay readable without covering the animation.
-Root cause: Absolute overlay pinned to the bottom of the visualization frame.
-Fix: Remove the overlay. Add a View legend above the canvas (Drag = Orbit, Scroll = Zoom, Right-drag = Pan).
+Page: Academy canvas
+Component: EntityPanel Row
+Viewport: all
+Zoom: 100%
+Observed: Long strings right-aligned away from their labels.
+Expected: Role facts read as a small definition list.
+Root cause: `justify-between` row layout.
+Fix: Stacked label / value blocks.
 Status: Resolved

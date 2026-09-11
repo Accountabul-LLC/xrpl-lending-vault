@@ -59,13 +59,13 @@ export function StepControls({
   return (
     <div
       className={
-        compact
-          ? 'rounded-xl border border-slate-700/80 bg-slate-950/90 px-3 py-2 min-w-0 backdrop-blur-sm'
-          : 'rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2.5 min-w-0'
+          compact
+            ? 'rounded-xl border border-slate-700/80 bg-slate-950/90 px-2.5 py-1.5 min-w-0 backdrop-blur-sm'
+            : 'rounded-xl border border-slate-800 bg-slate-950/80 px-3 py-2.5 min-w-0'
       }
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
+        <div className="min-w-0 hidden sm:block">
           <div className="text-[10px] uppercase tracking-wide text-indigo-300">
             Step {step} of 10
           </div>
@@ -73,9 +73,9 @@ export function StepControls({
             {meta?.title}
           </div>
         </div>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1 ml-auto">
           <Btn
-            className="bg-slate-700 hover:bg-slate-600"
+            className="bg-slate-700 hover:bg-slate-600 !px-2.5 !py-1 text-xs"
             disabled={step <= min}
             onClick={() => {
               setPlaying(false)
@@ -85,17 +85,19 @@ export function StepControls({
             Previous
           </Btn>
           {playing ? (
-            <Btn className="bg-slate-700 hover:bg-slate-600" onClick={() => setPlaying(false)}>
+            <Btn className="bg-slate-700 hover:bg-slate-600 !px-2.5 !py-1 text-xs" onClick={() => setPlaying(false)}>
               Pause
             </Btn>
           ) : (
-            <Btn onClick={play}>Play</Btn>
+            <Btn className="!px-2.5 !py-1 text-xs" onClick={play}>
+              Play
+            </Btn>
           )}
-          <Btn className="bg-slate-700 hover:bg-slate-600" onClick={restart}>
+          <Btn className="bg-slate-700 hover:bg-slate-600 !px-2.5 !py-1 text-xs" onClick={restart}>
             Restart
           </Btn>
           <Btn
-            className="bg-slate-700 hover:bg-slate-600"
+            className="bg-slate-700 hover:bg-slate-600 !px-2.5 !py-1 text-xs"
             disabled={step >= max}
             onClick={() => {
               setPlaying(false)

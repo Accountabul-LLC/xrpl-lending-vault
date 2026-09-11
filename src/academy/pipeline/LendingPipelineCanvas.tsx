@@ -67,12 +67,12 @@ export function LendingPipelineCanvas({
     <div
       ref={frameRef}
       data-viz-frame
-      className="academy-viz theme-locked relative w-full min-h-[360px] h-[min(82vh,860px)] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
+      className="academy-viz theme-locked relative w-full min-h-[280px] rounded-xl border border-slate-800 bg-gradient-to-b from-slate-950 via-[#0b1220] to-slate-950 overflow-hidden"
     >
       {showFallback ? (
         <>
           <FallbackPipeline lesson={lesson} />
-          <div className="absolute inset-x-2 top-2 z-[var(--z-banner)] flex items-start justify-between gap-2 rounded-lg border border-amber-500/40 bg-slate-950/95 px-3 py-2 text-xs shadow-lg">
+          <div className="absolute inset-x-2 top-[5.75rem] z-[var(--z-banner)] flex items-start justify-between gap-2 rounded-lg border border-amber-500/40 bg-slate-950/95 px-3 py-2 text-xs shadow-lg">
             <div className="min-w-0">
               <div className="font-semibold text-amber-200">Interactive 3D is unavailable</div>
               <div className="mt-0.5 text-slate-400">
@@ -123,17 +123,14 @@ export function LendingPipelineCanvas({
       <ProcessHud />
 
       {sim.state.selectedEntity && (
-        <div className="absolute right-2 top-[7.5rem] sm:top-[8.25rem] z-[var(--z-popover)] w-[min(100%-1rem,22rem)] max-h-[min(46%,26rem)] overflow-y-auto">
+        <div className="absolute left-2 bottom-[4.75rem] sm:bottom-[5.25rem] z-[var(--z-popover)] w-[min(calc(100%-1rem),20rem)] max-h-[min(42%,22rem)] overflow-y-auto">
           <EntityPanel />
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 z-[var(--z-banner)] p-2 sm:p-3 pointer-events-none">
-        <div className="pointer-events-auto max-w-4xl mx-auto space-y-1.5">
+      <div className="absolute inset-x-0 bottom-0 z-[var(--z-banner)] p-2 pointer-events-none">
+        <div className="pointer-events-auto max-w-5xl mx-auto">
           <StepControls lesson={lesson} reducedMotion={reducedMotion} compact />
-          <p className="text-[10px] text-center text-slate-500">
-            Drag to orbit · scroll to zoom · click a person for their role
-          </p>
         </div>
       </div>
     </div>

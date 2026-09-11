@@ -1,29 +1,11 @@
-# UI Change Log — Academy overlap pass
+# UI change log — Lending process canvas
 
-## Layout
-
-- `academy-shell` no longer forces `100vh` + `overflow: hidden` on laptop heights.
-- Fill-height workstation only at `min-width: 1024px` and `min-height: 900px`.
-- Visualization height is `min(42vh, 380px)` (sm: 46vh / 440px), then flex-grow on tall desktops.
-- Removed the extras `max-h-[32vh]` nested scroller.
-
-## Labels
-
-- Removed world-space name sprites and the “Vault rules” sprite.
-- Added `WorldLabels` CSS HUD: clamped inside the canvas, reserved 76px under the stats chip, collision push.
-- Default tags: Depositor, Lending Vault, Administrator, Borrower, Agreement (when visible).
-- Narrow screens use Admin / Vault so five tags still fit.
-
-## Camera
-
-- Canvas width `< 700px` frames the party from farther back so people are not cropped.
-- Orbit hint no longer overlays the 3D scene. Controls live in a View legend above the canvas.
-
-## Files
-
-- `src/academy/Academy.tsx`
-- `src/academy/components/ViewLegend.tsx`
-- `src/academy/pipeline/WorldLabels.tsx`
-- `src/academy/pipeline/LendingPipelineCanvas.tsx`
-- `src/academy/pipeline/LendingNetworkScene.ts`
-- `src/index.css`
+- `src/academy/components/ProcessHud.tsx` — compact lending-system bar (step, capital, advanced, 7-stage grid)
+- `src/academy/components/EntityPanel.tsx` — stacked role facts, custody subtitle, live status
+- `src/academy/components/StepControls.tsx` — compact controls; hide duplicate step title on phones
+- `src/academy/pipeline/LendingPipelineCanvas.tsx` — role card bottom-left; height from CSS; WebGL banner below HUD
+- `src/academy/pipeline/WorldLabels.tsx` — HUD/control reserved bands
+- `src/index.css` — viewport-aware `.academy-viz` height; one column scroll on tall desktops
+- `src/academy/experience/lendingProcess.ts` — origination, guarantee, and collateral→custody hops
+- `src/academy/experience/figures.ts` — property packet + XRPL ledger node
+- `src/academy/pipeline/LendingNetworkScene.ts` — packet types for document / property / coin

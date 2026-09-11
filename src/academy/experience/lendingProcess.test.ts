@@ -42,16 +42,23 @@ describe('lending process engine', () => {
   })
 
   it('routes the loan through desks instead of jumping straight to the vault', () => {
-    expect(hopsForStep(5, false)).toEqual([
-      expect.objectContaining({ from: 'borrower', to: 'originator' })
+    expect(hopsForStep(5, false).map((h) => `${h.from}->${h.to}`)).toEqual([
+      'borrower->originator',
+      'originator->vault'
     ])
     expect(hopsForStep(5, true).map((h) => `${h.from}->${h.to}`)).toEqual([
       'borrower->broker',
-      'broker->originator'
+      'broker->originator',
+      'originator->vault'
     ])
     expect(hopsForStep(7, false).map((h) => `${h.from}->${h.to}`)).toEqual([
+      'borrower->custodian',
       'custodian->vault',
       'vault->borrower'
+    ])
+    expect(hopsForStep(6, true).map((h) => `${h.from}->${h.to}`)).toEqual([
+      'originator->underwriter',
+      'underwriter->guarantor'
     ])
     expect(hopsForStep(9, false).map((h) => `${h.from}->${h.to}`)).toEqual([
       'borrower->servicer',

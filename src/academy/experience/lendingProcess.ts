@@ -87,7 +87,7 @@ export const PARTICIPANTS: ParticipantMeta[] = [
   {
     id: 'custodian',
     label: 'Collateral Custodian',
-    role: 'Holds collateral documentation or digital collateral for the facility.',
+    role: 'Institutional custody layer. Holds collateral documentation or digital collateral for the facility.',
     inputs: ['Approved collateral'],
     output: 'Collateral secured',
     basic: true,
@@ -234,6 +234,8 @@ export type ProcessHop = {
   kind: FlowKind
   label: string
   amount: number
+  packet?: 'document' | 'coin' | 'property'
+  banner?: string
 }
 
 /** Sequential packets that move a loan through the visible desks. */
@@ -245,31 +247,111 @@ export function hopsForStep(step: number, advanced: boolean): ProcessHop[] {
         to: 'vault',
         kind: 'deposit',
         label: `$${STORY.deposit.toLocaleString()}`,
-        amount: STORY.deposit
+        amount: STORY.deposit,
+        packet: 'coin',
+        banner: 'DEPOSITING…'
       }
     ]
   }
   if (step === 5) {
-    if (advanced) {
-      return [
-        { from: 'borrower', to: 'broker', kind: 'request', label: 'Application', amount: 1 },
-        { from: 'broker', to: 'originator', kind: 'request', label: 'Packaged file', amount: 1 }
-      ]
-    }
-    return [{ from: 'borrower', to: 'originator', kind: 'request', label: 'Loan request', amount: 1 }]
+    const start: ProcessHop[] = advanced
+      ? [
+          {
+            from: 'borrower',
+            to: 'broker',
+            kind: 'request',
+            label: 'Loan request',
+            amount: 1,
+            packet: 'document',
+            banner: 'APPLICATION…'
+          },
+          {
+            from: 'broker',
+            to: 'originator',
+            kind: 'request',
+            label: 'Packaged file',
+            amount: 1,
+            packet: 'document',
+            banner: 'BROKERAGE…'
+          }
+        ]
+      : [
+          {
+            from: 'borrower',
+            to: 'originator',
+            kind: 'request',
+            label: 'Loan request',
+            amount: 1,
+            packet: 'document',
+            banner: 'APPLICATION…'
+          }
+        ]
+    return [
+      ...start,
+      {
+        from: 'originator',
+        to: 'vault',
+        kind: 'request',
+        label: 'Loan created',
+        amount: 1,
+        packet: 'document',
+        banner: 'ORIGINATION…'
+      }
+    ]
   }
   if (step === 6) {
-    return [{ from: 'originator', to: 'underwriter', kind: 'request', label: 'Credit file', amount: 1 }]
+    const hops: ProcessHop[] = [
+      {
+        from: 'originator',
+        to: 'underwriter',
+        kind: 'request',
+        label: 'Credit file',
+        amount: 1,
+        packet: 'document',
+        banner: 'REVIEWING RISK…'
+      }
+    ]
+    if (advanced) {
+      hops.push({
+        from: 'underwriter',
+        to: 'guarantor',
+        kind: 'request',
+        label: 'Guarantee',
+        amount: 1,
+        packet: 'document',
+        banner: 'GUARANTEE ATTACHED'
+      })
+    }
+    return hops
   }
   if (step === 7) {
     return [
-      { from: 'custodian', to: 'vault', kind: 'deposit', label: 'Collateral', amount: 1 },
+      {
+        from: 'borrower',
+        to: 'custodian',
+        kind: 'request',
+        label: 'Collateral',
+        amount: 1,
+        packet: 'property',
+        banner: 'COLLATERAL → CUSTODY…'
+      },
+      {
+        from: 'custodian',
+        to: 'vault',
+        kind: 'deposit',
+        label: 'Secured',
+        amount: 1,
+        packet: 'property',
+        banner: 'COLLATERAL SECURED'
+      },
       {
         from: 'vault',
         to: 'borrower',
         kind: 'loan',
         label: `$${STORY.loan.toLocaleString()}`,
-        amount: STORY.loan
+        amount: STORY.loan,
+        packet: 'coin',
+        banner: 'FUNDING…'
       }
     ]
   }
@@ -280,21 +362,25 @@ export function hopsForStep(step: number, advanced: boolean): ProcessHop[] {
         to: 'servicer',
         kind: 'principal',
         label: `Payment $${STORY.payment.toLocaleString()}`,
-        amount: STORY.payment
+        amount: STORY.payment,
+        packet: 'coin',
+        banner: 'SERVICING…'
       },
       {
         from: 'servicer',
         to: 'vault',
         kind: 'principal',
         label: `Principal $${STORY.principalPortion.toFixed(2)}`,
-        amount: STORY.principalPortion
+        amount: STORY.principalPortion,
+        packet: 'coin'
       },
       {
         from: 'servicer',
         to: 'vault',
         kind: 'interest',
         label: `Interest $${STORY.interestPortion.toFixed(2)}`,
-        amount: STORY.interestPortion
+        amount: STORY.interestPortion,
+        packet: 'coin'
       }
     ]
   }
@@ -305,11 +391,29 @@ export function hopsForStep(step: number, advanced: boolean): ProcessHop[] {
         to: 'depositor',
         kind: 'yield',
         label: `Yield +$${STORY.interestPortion.toFixed(2)}`,
-        amount: STORY.interestPortion
+        amount: STORY.interestPortion,
+        packet: 'coin'
       }
     ]
   }
   return []
+}
+
+export function participantStatus(id: EntityId, step: number, advanced: boolean): string {
+  const hops = hopsForStep(step, advanced)
+  const involved = hops.some((h) => h.from === id || h.to === id)
+  if (id === 'underwriter' && step === 6) return involved ? 'Reviewing risk' : 'Idle'
+  if (id === 'custodian' && step === 7) return 'Securing collateral'
+  if (id === 'servicer' && step >= 9) return 'Collecting payment'
+  if (id === 'originator' && step === 5) return 'Creating loan record'
+  if (id === 'broker' && step === 5 && advanced) return 'Packaging application'
+  if (id === 'guarantor' && step === 6 && advanced) return 'Guarantee attached'
+  if (id === 'borrower' && step === 5) return 'Requesting'
+  if (id === 'borrower' && step === 7) return 'Receiving funds'
+  if (id === 'vault' && step === 7) return 'Funding loan'
+  if (id === 'vault' && step === 3) return 'Receiving capital'
+  if (!involved) return 'Idle'
+  return 'Active'
 }
 
 export function processFocus(step: number, advanced: boolean): EntityId[] {
