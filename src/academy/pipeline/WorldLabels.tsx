@@ -76,9 +76,11 @@ export function WorldLabels({
           }
           const pt = project(def.id)
           if (!pt) continue
-          const w = measureWidth(def.text)
+          const text = width < 640 && def.id === 'administrator' ? 'Admin' : width < 640 && def.id === 'vault' ? 'Vault' : def.text
+          const w = measureWidth(text)
           next.push({
             ...def,
+            text,
             w,
             x: pt.x,
             y: pt.y - 18

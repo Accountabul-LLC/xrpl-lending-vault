@@ -1,14 +1,26 @@
-# UI Final Report — Lending Academy v2
+# UI Final Report — Academy overlap pass
 
-The Academy no longer depends on abstract nodes. At 100% zoom the eight lessons remain visible, the 10-step controls stay on screen, and the WHO / WHAT / WHY panel explains the active step.
+The overlap skill was run in quick mode against the people-and-vault Academy.
 
-Browser verification (computer-use, localhost:5173):
+## Result
 
-- Lesson 1 loads with Step 1 of 10, Play/Pause/Next, people + vault, information panel
-- Play advances steps and updates WHO / WHAT / WHY
-- Lesson 7 missed payment shows Expected $1,750.00 / Received $0.00
-- Lesson 8 sandbox exposes Configure / Deposit / Request / Approve / Fund / Pay / Miss / Withdraw
-- Institutional track still renders
-- 375px uses numbered lesson chips; controls remain reachable
+Nothing in the primary teaching chrome overlaps at 100% zoom on 1366×768, 1920×1080, or 375×812.
 
-Open/accepted: sandbox extras may scroll on short laptops so the world and info panel stay visible (UI-203).
+| Check | Result |
+| --- | --- |
+| Full role names | Pass — Depositor, Borrower, Lending Vault, Administrator |
+| Labels stacked on the vault | Pass — separated HUD tags |
+| Stats HUD covering names | Pass — 76px reserve under Capital / Available / Lent |
+| Previous / Next on the 3D floor | Pass — chrome sits below the scene |
+| Phone side cropping | Pass — camera pulls back under 700px |
+| Play controls covered | Pass |
+
+## Remaining (accepted)
+
+- On a 1366×768 laptop the WHO / WHAT / WHY row is below the fold. That is page scroll, not overlap.
+- Institutional track and Live Devnet lab were not the defect surface this pass.
+- GitHub Pages still cannot publish from Actions (token cannot create a Pages site). Local / tunnel preview is the test path.
+
+## Stop condition
+
+Identified overlaps are resolved. Core controls stay accessible. Standard desktop sizes work at 100% zoom. Remaining issues are documented.

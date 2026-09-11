@@ -1,9 +1,27 @@
-# UI Change Log — Lending experience v2
+# UI Change Log — Academy overlap pass
 
-- Replaced the abstract node/pipe HUD-heavy scene with a shared world: people, vault, coins, agreement.
-- Step **n of 10** bar is always visible (Previous / Next / Play / Pause / Restart).
-- WHO / WHAT / WHY panel is always visible under the world.
-- Visualization grows with the workspace (`flex-1` on desktop) instead of a short fixed strip plus a large dead extras column.
-- Advanced roles are a compact chip strip in the same world, not a second map stealing canvas width.
-- 2D fallback uses person + vault symbols with the same layout if WebGL is unavailable.
-- Administrator offset so they are not hidden behind the vault; overview lessons use a raised camera.
+## Layout
+
+- `academy-shell` no longer forces `100vh` + `overflow: hidden` on laptop heights.
+- Fill-height workstation only at `min-width: 1024px` and `min-height: 900px`.
+- Visualization height is `min(42vh, 380px)` (sm: 46vh / 440px), then flex-grow on tall desktops.
+- Removed the extras `max-h-[32vh]` nested scroller.
+
+## Labels
+
+- Removed world-space name sprites and the “Vault rules” sprite.
+- Added `WorldLabels` CSS HUD: clamped inside the canvas, reserved 76px under the stats chip, collision push.
+- Default tags: Depositor, Lending Vault, Administrator, Borrower, Agreement (when visible).
+- Narrow screens use Admin / Vault so five tags still fit.
+
+## Camera
+
+- Canvas width `< 700px` frames the party from farther back so people are not cropped.
+
+## Files
+
+- `src/academy/Academy.tsx`
+- `src/academy/pipeline/WorldLabels.tsx`
+- `src/academy/pipeline/LendingPipelineCanvas.tsx`
+- `src/academy/pipeline/LendingNetworkScene.ts`
+- `src/index.css`
